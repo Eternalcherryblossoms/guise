@@ -1,5 +1,7 @@
 package io.guise.app.ui
 
+import android.content.Intent
+import android.net.Uri
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -35,10 +37,12 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import io.guise.app.data.InstalledApp
+import io.guise.app.data.Project
 import io.guise.core.config.TargetConfig
 import io.guise.core.profile.DeviceProfile
 import io.guise.core.profile.FieldKey
@@ -59,6 +63,7 @@ fun GuiseRoot(vm: GuiseViewModel) {
         Screen.Home -> "Guise"
         Screen.AppPicker -> "选择应用"
         Screen.DevicePicker -> "选择机型档案"
+        Screen.About -> "关于"
         is Screen.Detail -> vm.labelOf(s.packageName)
     }
 
@@ -69,6 +74,11 @@ fun GuiseRoot(vm: GuiseViewModel) {
                 navigationIcon = {
                     if (vm.screen != Screen.Home) {
                         TextButton(onClick = vm::back) { Text("返回") }
+                    }
+                },
+                actions = {
+                    if (vm.screen == Screen.Home) {
+                        TextButton(onClick = vm::openAbout) { Text("关于") }
                     }
                 },
             )
@@ -87,6 +97,7 @@ fun GuiseRoot(vm: GuiseViewModel) {
                 Screen.Home -> HomeScreen(vm)
                 Screen.AppPicker -> AppPickerScreen(vm)
                 Screen.DevicePicker -> DevicePickerScreen(vm)
+                Screen.About -> AboutScreen(vm)
                 is Screen.Detail -> DetailScreen(vm, s.packageName)
             }
         }
@@ -580,6 +591,173 @@ private fun OverrideDialog(
             }
         },
     )
+}
+
+// ---------------------------------------------------------------------------
+// About
+// ---------------------------------------------------------------------------
+
+@Composable
+private fun AboutScreen(vm: GuiseViewModel) {
+    val context = LocalContext.current
+    val open: (String) -> Unit = { url ->
+        runCatching {
+            context.startActivity(
+                Intent(Intent.ACTION_VIEW, Uri.parse(url))
+                    .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK),
+            )
+        }
+    }
+
+    LazyColumn(
+        modifier = Modifier.fillMaxSize(),
+        contentPadding = androidx.compose.foundation.layout.PaddingValues(16.dp),
+        verticalArrangement = Arrangement.spacedBy(12.dp),
+    ) {
+        item {
+            Card(Modifier.fillMaxWidth()) {
+                Column(Modifier.padding(16.dp)) {
+                    Text("Guise · 拟态", style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
+                    Spacer(Modifier.height(4.dp))
+                    Text(
+                        "版本 ${vm.currentVersionName()}",
+                        style = MaterialTheme.typography.bodySmall,
+                        fontFamily = FontFamily.Monospace,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                    Spacer(Modifier.height(10.dp))
+                    Text(
+                        "零手工编码 · 全科技制造 · 由 DeepSeek 生成",
+                        style = MaterialTheme.typography.titleSmall,
+                        fontWeight = FontWeight.SemiBold,
+                        color = MaterialTheme.colorScheme.primary,
+                    )
+                    Spacer(Modifier.height(10.dp))
+                    Text(
+                        "按「设备档案」而非单个字段重写系统上报的硬件信息，" +
+                            "让各通道之间保持自洽。",
+                        style = MaterialTheme.typography.bodyMedium,
+                    )
+                }
+            }
+        }
+
+        item { UpdateCard(vm, open) }
+
+        item {
+            NoteCard(
+                title = "这个项目是怎么造出来的",
+                body = "每一行代码、每一次架构决策、每一个 CI 配置，都由 DeepSeek 编写。\n\n" +
+                    "人类提供的是另外两样东西：方向，和真机验证。\n\n" +
+                    "后者不可替代。这个项目里有好几处结论是被真机推翻的——探针在设备上跑出的报告，" +
+                    "否掉了「需要 Zygisk 层」和「需要 root 层」这两个已经论证过的设计，" +
+                    "还揪出了一个自己引入的构建号年代 bug。" +
+                    "README 里那张「实测发现」表记录的就是这些，包括否定我自己的那些。\n\n" +
+                    "所以更准确的说法不是「AI 写的」，而是：AI 推断，真机证伪。" +
+                    "再会写代码的模型，也替代不了把 APK 装到手机上、点开、然后把报告拿回来这一步。",
+            )
+        }
+
+        item {
+            NoteCard(
+                title = "它做什么，不做什么",
+                body = "做：让 Build.*、SystemProperties、Settings.Secure、GPU 字符串、" +
+                    "编解码器列表等通道报告一份互相自洽的设备身份。\n\n" +
+                    "不做：伪造硬件证明。Key Attestation 的证书在 TEE 内签名，" +
+                    "rootOfTrust 由 bootloader 提供——这一层不是本地伪装能解决的。" +
+                    "内存容量、ABI 列表、核心数同样无法伪装，选档案时必须匹配。\n\n" +
+                    "也不需要 root。模块运行在 LSPosed 之上，仅此一层。",
+            )
+        }
+
+        item {
+            Card(Modifier.fillMaxWidth()) {
+                Column(Modifier.padding(16.dp)) {
+                    Text("链接", style = MaterialTheme.typography.labelMedium)
+                    Spacer(Modifier.height(4.dp))
+                    TextButton(onClick = { open(Project.GITHUB_URL) }) { Text("GitHub 仓库") }
+                    TextButton(onClick = { open(Project.RELEASES_URL) }) { Text("下载最新版本") }
+                    TextButton(onClick = { open(Project.ISSUES_URL) }) { Text("反馈问题") }
+                    Text(
+                        Project.GITHUB_URL,
+                        style = MaterialTheme.typography.labelSmall,
+                        fontFamily = FontFamily.Monospace,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+            }
+        }
+
+        item {
+            NoteCard(
+                title = "许可",
+                body = "LGPL-3.0。本项目是对 kingsollyu/AppEnv 的重建，" +
+                    "沿用了它的许可证；没有共享任何代码。",
+            )
+        }
+
+        item { Spacer(Modifier.height(24.dp)) }
+    }
+}
+
+@Composable
+private fun UpdateCard(vm: GuiseViewModel, open: (String) -> Unit) {
+    val info = vm.updateInfo
+    when {
+        vm.updateState == UpdateState.CHECKING -> NoteCard("检查更新", "正在查询 GitHub 发布页…")
+
+        info != null -> Card(
+            Modifier.fillMaxWidth(),
+            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryContainer),
+        ) {
+            Column(Modifier.padding(16.dp)) {
+                Text(
+                    "有新版本 ${info.latestVersion}",
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold,
+                )
+                Spacer(Modifier.height(4.dp))
+                Text(
+                    "当前版本 ${vm.currentVersionName()}",
+                    style = MaterialTheme.typography.bodySmall,
+                )
+                info.notes?.take(400)?.let {
+                    Spacer(Modifier.height(8.dp))
+                    Text(it, style = MaterialTheme.typography.bodySmall)
+                }
+                Spacer(Modifier.height(8.dp))
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    // The asset URL downloads the APK directly; the release page is the
+                    // fallback when a release carries no asset.
+                    (info.apkUrl ?: info.releaseUrl).let { url ->
+                        TextButton(onClick = { open(url) }) {
+                            Text(if (info.apkUrl != null) "下载安装包" else "打开发布页")
+                        }
+                    }
+                    TextButton(onClick = { open(info.releaseUrl) }) { Text("查看发布页") }
+                }
+            }
+        }
+
+        vm.updateState == UpdateState.DONE -> Card(Modifier.fillMaxWidth()) {
+            Column(Modifier.padding(16.dp)) {
+                Text("未发现新版本", style = MaterialTheme.typography.titleSmall)
+                Spacer(Modifier.height(4.dp))
+                Text(
+                    "若仓库为私有、尚无 Release，或当前无网络，这里同样不会显示新版本。",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+                Spacer(Modifier.height(8.dp))
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    TextButton(onClick = vm::checkForUpdate) { Text("重新检查") }
+                    TextButton(onClick = { open(Project.RELEASES_URL) }) { Text("打开发布页") }
+                }
+            }
+        }
+
+        else -> NoteCard("检查更新", "尚未检查。")
+    }
 }
 
 // ---------------------------------------------------------------------------

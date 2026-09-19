@@ -12,6 +12,8 @@ import io.guise.app.data.CatalogRepository
 import io.guise.app.data.ConfigRepository
 import io.guise.app.data.DeviceCapture
 import io.guise.app.data.InstalledApp
+import io.guise.app.data.UpdateChecker
+import io.guise.app.data.UpdateInfo
 import io.guise.app.service.XposedBridgeClient
 import io.guise.core.config.ModuleConfig
 import io.guise.core.config.TargetConfig
@@ -27,19 +29,26 @@ sealed interface Screen {
     data object Home : Screen
     data object AppPicker : Screen
     data object DevicePicker : Screen
+    data object About : Screen
     data class Detail(val packageName: String) : Screen
 }
+
+/** Whether the update check has run, so the About screen can say "not checked" honestly. */
+enum class UpdateState { IDLE, CHECKING, DONE }
 
 class GuiseViewModel(app: Application) : AndroidViewModel(app) {
 
     private val configRepo = ConfigRepository(app)
     private val catalogRepo = CatalogRepository(app, configRepo)
     private val scanner = AppScanner(app)
+    private val updateChecker = UpdateChecker(app)
 
     var screen by mutableStateOf<Screen>(Screen.Home)
     var config by mutableStateOf(ModuleConfig.EMPTY)
     var frameworkInfo by mutableStateOf<String?>(null)
     var frameworkConnected by mutableStateOf(false)
+    var updateInfo by mutableStateOf<UpdateInfo?>(null)
+    var updateState by mutableStateOf(UpdateState.IDLE)
     var apps by mutableStateOf<List<InstalledApp>>(emptyList())
     var search by mutableStateOf("")
     var message by mutableStateOf<String?>(null)
@@ -73,6 +82,30 @@ class GuiseViewModel(app: Application) : AndroidViewModel(app) {
         frameworkConnected = XposedBridgeClient.isConnected
         frameworkInfo = XposedBridgeClient.describe()
     }
+
+    // ---- about and updates --------------------------------------------------
+
+    fun openAbout() {
+        screen = Screen.About
+        // Checked on entry rather than on every launch: an app that always phones home on
+        // start is the kind of behaviour this project exists to argue against, and a manual
+        // check is one tap away.
+        if (updateState == UpdateState.IDLE) checkForUpdate()
+    }
+
+    fun checkForUpdate() {
+        if (updateState == UpdateState.CHECKING) return
+        viewModelScope.launch {
+            updateState = UpdateState.CHECKING
+            updateInfo = updateChecker.check()
+            updateState = UpdateState.DONE
+        }
+    }
+
+    fun currentVersionName(): String = runCatching {
+        getApplication<Application>().packageManager
+            .getPackageInfo(getApplication<Application>().packageName, 0).versionName.orEmpty()
+    }.getOrDefault("")
 
     // ---- catalog ------------------------------------------------------------
 
@@ -156,6 +189,7 @@ class GuiseViewModel(app: Application) : AndroidViewModel(app) {
             is Screen.DevicePicker -> if (changingProfileFor != null) Screen.Detail(changingProfileFor!!) else Screen.AppPicker
             Screen.AppPicker -> Screen.Home
             is Screen.Detail -> Screen.Home
+            Screen.About -> Screen.Home
             Screen.Home -> Screen.Home
         }
     }

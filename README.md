@@ -1,6 +1,6 @@
 # Guise
 
-A ground-up rebuild of [kingsollyu/Guise](https://github.com/kingsollyu/Guise) (应用变量) for
+A ground-up rebuild of [kingsollyu/AppEnv](https://github.com/kingsollyu/AppEnv) (应用变量) for
 modern Android and LSPosed.
 
 Guise was last updated in **March 2019**. It does not build today: its build script still
@@ -12,6 +12,32 @@ This project is not a port. The configuration transport is replaced, the hook fr
 migrated to the modern libxposed API, and the data model is redesigned around a single idea:
 
 > **A spoofed device is a coherent profile, not a bag of independently editable fields.**
+
+---
+
+## Download
+
+Grab the latest APK from [**Releases**](https://github.com/Eternalcherryblossoms/guise/releases).
+The release assets are built by CI on every push to `main`.
+
+The published APK is a **debug build**, so its package is `io.guise.debug` and it can sit
+beside a future properly-signed release without conflict. Release signing is deliberately not
+set up yet: doing it properly means a keystore held outside the repository, and committing one
+would let anyone sign something that looks like an official update.
+
+## Updates
+
+The app checks GitHub Releases and offers a newer build when one exists. There is no server, no
+account and no push channel, and that is a limit rather than an omission: real push on Android
+means Firebase Cloud Messaging, which means Play services and a permanent device identifier --
+out of place in a module whose whole point is to hand out fewer identifiers. Every open-source
+Android project solves this the same way, by asking the releases endpoint.
+
+The check is **one unauthenticated HTTPS GET** to `api.github.com`, with no device identifier,
+no account and no query string. It runs when you open the About screen, not on every launch.
+
+**It only works once the repository is public.** GitHub returns 404 for the releases API of a
+private repository, and the app treats that as "no update information" rather than an error.
 
 ---
 

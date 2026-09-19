@@ -2,6 +2,13 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
 
     <!--
+      The only permission this app requests, and only for the update check: one
+      unauthenticated HTTPS GET to the GitHub releases endpoint. UpdateChecker documents
+      exactly what that request carries, which is no identifier of any kind.
+    -->
+    <uses-permission android:name="android.permission.INTERNET" />
+
+    <!--
       Package visibility for the target picker. We deliberately avoid QUERY_ALL_PACKAGES:
       apps that can be chosen as a hook target are, by definition, launchable ones.
     -->

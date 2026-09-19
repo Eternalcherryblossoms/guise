@@ -1,4 +1,4 @@
-# AppEnvX module descriptor (Java properties).
+# Guise module descriptor (Java properties).
 #
 # minApiVersion / targetApiVersion are libxposed *API* versions, not framework versions.
 # Both are 101 because the module is compiled against libxposed api 101.0.0: that is the
