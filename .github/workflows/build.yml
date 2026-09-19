@@ -6,21 +6,42 @@ on:
   pull_request:
   workflow_dispatch:
 
+# A new push supersedes an in-flight run on the same ref.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   build:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
       # AGP 8.x supports JDK 17-21. Pinning 21 keeps the toolchain deterministic.
-      - uses: actions/setup-java@v4
+      - uses: actions/setup-java@v5
         with:
           distribution: temurin
           java-version: '21'
 
-      - uses: android-actions/setup-android@v3
-
       - uses: gradle/actions/setup-gradle@v4
+
+      # The runner image ships an Android SDK but not necessarily the exact platform and
+      # build-tools this project pins, so they are installed explicitly.
+      #
+      # Note what is NOT used here: android-actions/setup-android. Its default flow runs
+      # `sdkmanager tools`, and Google has since removed the `tools` package from the SDK
+      # repository, so the action fails before any project step executes. Resolving
+      # sdkmanager defensively also survives the runner image moving its cmdline-tools.
+      - name: Install SDK platform and build tools
+        run: |
+          set -euo pipefail
+          SDKMANAGER="${ANDROID_HOME}/cmdline-tools/latest/bin/sdkmanager"
+          if [ ! -x "$SDKMANAGER" ]; then
+            SDKMANAGER="$(find "${ANDROID_HOME}/cmdline-tools" -name sdkmanager -type f 2>/dev/null | head -n1)"
+          fi
+          echo "sdkmanager: $SDKMANAGER"
+          yes | "$SDKMANAGER" --licenses > /dev/null 2>&1 || true
+          "$SDKMANAGER" "platforms;android-36" "build-tools;36.0.0" "platform-tools"
 
       # The coherence rules are tested on the desktop JVM, which is the point of :core
       # having no Android dependencies: the part most likely to be wrong is the part that
