@@ -1,0 +1,14 @@
+# AppEnvX module descriptor (Java properties).
+#
+# minApiVersion / targetApiVersion are libxposed *API* versions, not framework versions.
+# Both are 101 because the module is compiled against libxposed api 101.0.0: that is the
+# newest release whose AAR metadata permits the compileSdk this toolchain can reach (36).
+# Declaring 102 here while compiling against 101 would promise APIs the module never uses
+# and cannot be checked against.
+minApiVersion=101
+targetApiVersion=101
+
+# Scope is chosen by the user, not baked in: the management app grows the scope through
+# XposedService.requestScope() the moment a target is configured. A static scope here
+# would make LSPosed pre-select apps the user never asked to hook.
+staticScope=false

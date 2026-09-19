@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <!--
+      The probe deliberately claims no permissions beyond what a plain app gets. Anything it
+      can read, an ordinary fingerprinting SDK can read, which is the point: it must see
+      exactly what an observer sees, no more.
+    -->
+
+    <!--
+      Package visibility for the root-detection check. Without these declarations Android 11+
+      makes the lookup return "not installed" even when the manager app IS installed, which
+      would read as a false all-clear, the worst possible failure mode for a diagnostic.
+      Note: XML comments cannot contain a double hyphen, which is why this one is worded
+      without one.
+    -->
+    <queries>
+        <package android:name="com.topjohnwu.magisk" />
+        <package android:name="io.github.huskydg.magisk" />
+        <package android:name="me.weishu.kernelsu" />
+        <package android:name="eu.chainfire.supersu" />
+        <package android:name="com.koushikdutta.superuser" />
+        <package android:name="com.noshufou.android.su" />
+    </queries>
+
+    <application
+        android:allowBackup="false"
+        android:icon="@mipmap/ic_launcher"
+        android:label="@string/probe_name"
+        android:supportsRtl="true"
+        android:theme="@style/Theme.GuiseProbe">
+
+        <activity
+            android:name=".ProbeActivity"
+            android:exported="true"
+            android:label="@string/probe_name"
+            android:theme="@style/Theme.GuiseProbe">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity>
+    </application>
+
+</manifest>

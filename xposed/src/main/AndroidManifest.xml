@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    <!--
+      No <application> here on purpose: :hook is a library that contributes the Xposed
+      entry class and the META-INF/xposed descriptors. Everything user-visible lives in :app.
+    -->
+</manifest>

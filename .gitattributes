@@ -1,0 +1,18 @@
+# Normalise line endings so the repository behaves the same on Windows and everywhere else.
+# Without this, Git's autocrlf turns every LF into CRLF on checkout and the diff noise is
+# permanent.
+* text=auto eol=lf
+
+# Windows-only files must keep CRLF or cmd.exe mis-parses them.
+*.bat text eol=crlf
+gradlew.bat text eol=crlf
+
+# Binary: never touch these.
+*.png binary
+*.jpg binary
+*.webp binary
+*.jar binary
+*.keystore binary
+*.apk binary
+*.aar binary
+*.so binary

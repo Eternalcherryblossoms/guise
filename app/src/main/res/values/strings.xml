@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Guise</string>
+    <!-- Modern Xposed API reads the module description from android:description. -->
+    <string name="module_description">按设备档案（而非单个字段）重写系统上报的硬件信息，保证各通道之间自洽。</string>
+
+    <string name="nav_apps">应用</string>
+    <string name="nav_devices">机型库</string>
+    <string name="nav_settings">设置</string>
+
+    <string name="framework_connected">已连接 Xposed 框架</string>
+    <string name="framework_disconnected">未检测到 Xposed 框架</string>
+    <string name="framework_connecting">正在连接框架…</string>
+
+    <string name="empty_apps">还没有配置任何应用\n点击右下角按钮选择要伪装的 App</string>
+    <string name="empty_devices">机型库为空</string>
+
+    <string name="pick_app">选择应用</string>
+    <string name="pick_device">选择机型档案</string>
+    <string name="search_hint">搜索名称、型号或品牌</string>
+
+    <string name="enabled">已启用</string>
+    <string name="disabled">已停用</string>
+    <string name="profile">机型档案</string>
+    <string name="no_profile">未选择档案</string>
+    <string name="overrides">字段覆盖</string>
+    <string name="override_hint">留空则跟随档案</string>
+    <string name="reset_override">跟随档案</string>
+    <string name="remove_target">移除该应用</string>
+
+    <string name="scope_request">已请求将 %1$s 加入模块作用域</string>
+    <string name="scope_failed">作用域请求失败：%1$s</string>
+</resources>

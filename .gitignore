@@ -1,0 +1,28 @@
+# Gradle
+.gradle/
+build/
+.kotlin/
+!gradle/wrapper/gradle-wrapper.jar
+
+# Android
+local.properties
+*.apk
+*.aab
+*.ap_
+*.dex
+captures/
+.cxx/
+
+# IDE
+.idea/
+*.iml
+.vscode/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Note: keystore/debug.keystore IS intentionally tracked. It uses the standard Android
+# debug credentials (store/key password "android", alias "androiddebugkey"), which are
+# public by convention and are not a secret. Tracking it keeps debug builds reproducible
+# on machines where the home directory is not writable.

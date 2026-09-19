@@ -1,0 +1,41 @@
+name: build
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      # AGP 8.x supports JDK 17-21. Pinning 21 keeps the toolchain deterministic.
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+
+      - uses: android-actions/setup-android@v3
+
+      - uses: gradle/actions/setup-gradle@v4
+
+      # The coherence rules are tested on the desktop JVM, which is the point of :core
+      # having no Android dependencies: the part most likely to be wrong is the part that
+      # does not need a rooted handset to verify.
+      - name: Unit tests
+        run: ./gradlew :core:test --stacktrace
+
+      - name: Assemble
+        run: ./gradlew :xposed:assembleDebug :app:assembleDebug :probe:assembleDebug --stacktrace
+
+      - name: Upload APKs
+        uses: actions/upload-artifact@v4
+        with:
+          name: apks
+          path: |
+            app/build/outputs/apk/debug/*.apk
+            probe/build/outputs/apk/debug/*.apk
+          if-no-files-found: error

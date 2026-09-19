@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    <!-- A magnifier over a device outline: the probe inspects, it does not disguise. -->
+    <path
+        android:fillColor="#CE93D8"
+        android:pathData="M40,28h28a5,5 0 0 1 5,5v42a5,5 0 0 1 -5,5h-28a5,5 0 0 1 -5,-5v-42a5,5 0 0 1 5,-5zM40,34v40h28v-40z" />
+    <path
+        android:fillColor="#E1BEE7"
+        android:pathData="M45,42h18v3h-18zM45,50h18v3h-18zM45,58h11v3h-11z" />
+    <path
+        android:fillColor="#FFB74D"
+        android:pathData="M66,60a9,9 0 1 1 0,18a9,9 0 0 1 0,-18zM66,64a5,5 0 1 0 0,10a5,5 0 0 0 0,-10z" />
+    <path
+        android:strokeColor="#FFB74D"
+        android:strokeWidth="4"
+        android:pathData="M72.5,78.5L80,86" />
+</vector>
