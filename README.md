@@ -1,289 +1,479 @@
-# Guise
+# Guise · 拟态
 
-A ground-up rebuild of [kingsollyu/AppEnv](https://github.com/kingsollyu/AppEnv) (应用变量) for
-modern Android and LSPosed.
+**简体中文** · [English](#english)
 
-Guise was last updated in **March 2019**. It does not build today: its build script still
-resolves plugin and library dependencies from `jcenter()`, which shut down in 2021. Even if
-that were repaired it would still not do anything, because the mechanism it uses to hand
-configuration to the hooked process has been closed off by Android itself.
-
-This project is not a port. The configuration transport is replaced, the hook framework is
-migrated to the modern libxposed API, and the data model is redesigned around a single idea:
-
-> **A spoofed device is a coherent profile, not a bag of independently editable fields.**
+> 按**设备档案**而不是单个字段重写系统上报的硬件信息，让各通道之间保持自洽。
+>
+> Rewrites what the platform reports about the hardware, driven by a **coherent device
+> profile** rather than a bag of independently editable fields.
 
 ---
 
-## Download
+<a id="简体中文"></a>
 
-Grab the latest APK from [**Releases**](https://github.com/Eternalcherryblossoms/guise/releases).
-The release assets are built by CI on every push to `main`.
+# 简体中文
 
-The published APK is a **debug build**, so its package is `io.guise.debug` and it can sit
-beside a future properly-signed release without conflict. Release signing is deliberately not
-set up yet: doing it properly means a keystore held outside the repository, and committing one
-would let anyone sign something that looks like an official update.
+## 这是什么
 
-## Updates
+安卓应用从来不直接观察硬件，它观察的是**系统告诉它的东西**。而这条"告知链"上的每一层都是软件，都可以被改写。
 
-The app checks GitHub Releases and offers a newer build when one exists. There is no server, no
-account and no push channel, and that is a limit rather than an omission: real push on Android
-means Firebase Cloud Messaging, which means Play services and a permanent device identifier --
-out of place in a module whose whole point is to hand out fewer identifiers. Every open-source
-Android project solves this the same way, by asking the releases endpoint.
+多数同类工具的做法是：给你一张字段表，你自己填 `Build.MODEL`、`Build.BRAND`、`Build.DEVICE`……各自独立。结果是很容易造出一台"指纹说小米、GPU 说 Pixel、产品代号说三星"的设备——**而跨通道矛盾正是指纹识别 SDK 最容易抓的东西**。
 
-The check is **one unauthenticated HTTPS GET** to `api.github.com`, with no device identifier,
-no account and no query string. It runs when you open the About screen, not on every launch.
+Guise 的做法不同：
 
-**It only works once the repository is public.** GitHub returns 404 for the releases API of a
-private repository, and the app treats that as "no update information" rather than an error.
+> **一台被伪装的设备是一个完整自洽的档案，不是一个字段集合。**
 
----
+档案里派生出来的值（指纹、构建号年代）是**计算**出来的，不是**存储**的，所以它不可能和别的字段打架。
 
-## Why the original stopped working
+## 功能
 
-| # | Cause | Detail |
-|---|---|---|
-| 1 | **Config transport is dead** | `SettingsXposed` wrote a JSON file into the module's own data directory, or a world-readable copy in `/data/local/tmp`. Reading another app's data directory from a hooked process has been blocked by per-app SELinux labelling since Android 7 and by scoped storage since Android 11. The module could not read its own configuration. |
-| 2 | **Ancient API** | Bundled `XposedBridgeApi-54.jar`. |
-| 3 | **Narrow coverage** | Roughly nine hook points, all in `Build`, `TelephonyManager`, `WifiInfo` and `Resources`. No property reads, no GPU strings, no `Settings.Secure`. |
-| 4 | **No coherence** | Every field was set independently. Nothing stopped a user from producing a "Pixel" whose fingerprint, product codename and GPU all said Xiaomi. |
-| 5 | **Real bug** | It hooked `Settings.System.getString` for `android_id`. `ANDROID_ID` lives in `Settings.Secure`. That hook never fired once. |
-| 6 | **Real bug** | It wrote `ro.product.manufacturer` into `Build.PRODUCT` and `Build.BRAND`, and `ro.product.model` into `Build.DEVICE`. Those properties are the product and device *codenames*. |
-| 7 | **Dead field** | It set `Build.SERIAL`, which has read `"UNKNOWN"` since API 26. The real accessor is `Build.getSerial()`. |
-| 8 | **Rotten build** | AGP 3.2.0, Gradle 4.10.1, Kotlin 1.3.21, `com.android.support`, jcenter, Umeng analytics, Walle channel packaging. |
+### 覆盖的通道（8 个）
 
----
-
-## What changed
-
-### Configuration transport
-
-Replaced with LSPosed's **remote preferences**, which is the officially supported modern
-mechanism and is specifically designed for this.
-
-| | Old | New |
-|---|---|---|
-| Storage | Module's private data dir, or `chmod 777 /data/local/tmp` | LSPosed database, via `getRemotePreferences` |
-| Readable from hooked app | No (Android 7+ / 11+) | Yes |
-| Written by | The module app, hoping the path is readable | `XposedService` on the service side |
-| Live updates | Requires a force-stop | Preference change listener invalidates the cache |
-
-The device catalog is bulk data, so it travels differently: it is **bundled in the APK's
-assets** and read straight out of the module APK by zip, and user-captured profiles go into
-a **remote file** overlay.
-
-### Data model
-
-```
-SocProfile     one chip    -> GPU renderer, platform, ABIs, codec prefixes, CPU part
-     ^ referenced by
-DeviceProfile  one handset -> identity + build metadata + display + socKey
-     ^ resolved with
-EffectiveProfile           -> the ONLY thing a hook channel may read
-```
-
-The SoC/device split is what makes the catalog maintainable: a few dozen SoCs cover most
-handsets, and every device sharing a chip automatically shares the values that must agree
-with it.
-
-Values that are mechanically implied by others are **derived, not stored**. The build
-fingerprint is the important case:
-
-```kotlin
-val fingerprint: String
-    get() = "$brand/$product/$device:$release/$id/$incremental:$type/$tags"
-```
-
-It cannot drift out of agreement with `Build.MODEL` and friends, because it is not a
-separate field. Overriding the model updates the fingerprint automatically.
-
-### Hook coverage
-
-Channels, each covering one observable surface:
-
-| Channel | Surfaces |
+| 通道 | 覆盖内容 |
 |---|---|
-| `build` | `Build.*` (16 fields), `Build.VERSION.*`, `Build.getSerial()` |
-| `system-properties` | `SystemProperties.get/getInt/getLong/getBoolean` over 23 `ro.*` keys |
-| `settings-secure` | `Settings.Secure` SSAID |
-| `gpu` | `GLES20/30/31.glGetString` vendor + renderer |
-| `telephony` | `getDeviceId` / `getImei` / `getMeid` |
-| `wifi` | `WifiInfo.getMacAddress`, `NetworkInterface.getHardwareAddress` |
-| `display-density` | `Resources.updateConfiguration` (opt-in) |
+| `Build.*` | 品牌、厂商、型号、设备代号、产品代号、主板、硬件、指纹、引导器、显示版本、构建 ID、标签、类型、构建主机、构建用户、构建时间 |
+| `Build.VERSION.*` | release、增量版本、安全补丁级别 |
+| `Build.getSerial()` | 序列号（真正被调用的那个入口，不是那个自 API 26 起恒为 `UNKNOWN` 的常量） |
+| `SystemProperties` | 23 个 `ro.*` 键，覆盖 `get` / `getInt` / `getLong` / `getBoolean` —— 很多完整性检查直接读属性而不读 `Build` |
+| `Settings.Secure` | SSAID（`ANDROID_ID`），按档案稳定合成 |
+| GPU | `GLES20/30/31.glGetString` 的 vendor 与 renderer —— 由真实驱动提供，是最便宜的交叉校验点 |
+| 电话 | IMEI / MEID，合成且通过 Luhn 校验 |
+| WiFi | `WifiInfo.getMacAddress`、`NetworkInterface.getHardwareAddress` |
 
-### Scope
+两个**需手动开启**的附加通道（默认关闭，理由见下）：
 
-Not declared statically. The management app calls `XposedService.requestScope()` when a
-target is configured, so LSPosed never pre-selects apps the user did not ask to touch.
+| 通道 | 说明 |
+|---|---|
+| 编解码器厂商前缀 | `MediaCodecList` 的组件名带芯片厂商前缀（`c2.mtk.` / `c2.qti.`），来自 vendor 配置，不覆盖就会暴露真实芯片。**列表只能过滤不能增加**，隐藏后可能让目标应用找不到它需要的解码器（表现为播放异常），所以做成逐应用开关 |
+| 屏幕密度 | 改写密度会改变目标应用的布局。分辨率完全不改——`DisplayMetrics` 有太多读取路径不经过 `Resources.updateConfiguration`，半改比不改更糟 |
 
----
+### 一致性保证
 
-## Deliberate scope limits
+1. **指纹是派生的，不是存储的** —— `BRAND/PRODUCT/DEVICE:RELEASE/ID/INCREMENTAL:TYPE/TAGS` 由其它字段算出来，不可能自相矛盾
+2. **版本与构建号年代取自运行设备** —— API 级别不能安全改写（改了会让应用走本机不存在的代码路径而崩溃），所以 release 必须跟它一致，构建号的版本代号也必须跟着走。这避免了 `Android 16 配 Android 13 构建号` 这种一眼可见的破绽
+3. **档案按 SoC 复用** —— GPU、平台、ABI、编解码器前缀都属于芯片，不是机型。几十个 SoC 覆盖上千机型，且共享芯片的机型**自动共享**那些必须一致的值
 
-These are choices, not omissions.
+### 按应用粒度
 
-- **`Build.VERSION.SDK_INT` is not spoofed from the profile.** It is a `static final int`
-  that the framework branches on everywhere. Raising it makes an app take code paths this
-  ROM does not have; lowering it hides real ones. Both crash. It applies only when a user
-  pins it explicitly, and the UI shows a warning when they do.
-- **Screen density is opt-in.** Every app lays itself out from the values it is handed, so
-  rewriting them is the most likely thing here to break a target's UI. Resolution is not
-  rewritten at all: `DisplayMetrics` is read from too many places that never pass through
-  `Resources.updateConfiguration`, so a partial rewrite produces a half-changed display.
-- **SIM-bound identifiers are not touched.** IMSI, SIM serial and operator codes belong to
-  the SIM, not the handset. The profile carries no carrier identity, so any invented value
-  would be arbitrary -- and an IMSI whose MCC/MNC disagrees with the real SIM's operator
-  code is a contradiction, not a disguise.
-- **SSID and BSSID are not touched.** They describe the network, not the device.
-- **No native channel yet.** `/proc/cpuinfo` and `/sys/class/net/*/address` are reachable
-  from Java only weakly. Doing them properly needs a native library and NDK build.
+每个应用独立配置。作用域**按需增长**：你在界面里选了一个目标，模块才通过 `XposedService` 把它加进 LSPosed 作用域——而不是预先勾选一堆你没打算碰的应用。
 
-## What this cannot do
+### 机型库
 
-Stated plainly, because the tool would be misleading otherwise:
+内置 **14 台机型 / 11 个 SoC**。更重要的是两个机制：
 
-- **Key Attestation cannot be forged.** The certificate is signed inside the TEE. No amount
-  of hooking changes that, and `rootOfTrust` reports `verifiedBootState` which comes from
-  the bootloader.
-- **Widevine L1 keys cannot be forged.** They are in the TEE.
-- **Physical behaviour cannot be disguised.** Sensor noise, GPU timing and memory bandwidth
-  come from the silicon. A device spoofed into a hundred identities still shares one body,
-  and that is what server-side clustering looks for.
+- **抓取本机** —— 从真实设备读取全部字段生成档案，100% 准确
+- **用户档案覆盖** —— 自己抓的档案优先于内置条目
 
-This module rewrites what the platform *reports*. It does not, and cannot, defeat
-hardware-backed attestation.
+内置条目的身份字段（品牌/型号/代号/SoC/屏幕）是准确转录的；**构建元数据是格式正确的示例，不是真实转储**——这类数据无法从规格表可靠获得。文件里明确标注了哪一条是真实抓取。
 
----
+### 诊断探针（独立应用）
 
-## Building
+这是本项目最特别的部分。**它不做真假判断**——没有客户端能做到，这正是本项目的核心论点。它测量两件客户端**能**测的事：
+
+| 检查 | 作用 |
+|---|---|
+| **哈希聚合（三源交叉）** | 同一批事实分别从 Java API、`SystemProperties`、`/proc`+`/sys` 读三遍并各自哈希。哪个哈希不等，就**指名道姓**说出哪条通道没跟上——这测的是覆盖面，不需要机型数据库 |
+| Java / 属性层一致性 | 逐字段对拍。只 hook 了 Java 层、属性层漏了——伪装模块半残时最常见的形态 |
+| 指纹结构自洽性 | 格式、分段、release↔API 级别、release↔构建号年代 |
+| 内核 SoC vs 框架声明 | `/sys/devices/soc0/machine` 由内核提供，Java 层 hook 够不着 |
+| 编解码器厂商前缀 | 列出实际存在的厂商前缀，以及与声明芯片是否矛盾 |
+| 注入痕迹可见性 | `/proc/self/maps` 可疑条目（报**实际路径**，不是 token）、Hook 框架类 |
+| Root 痕迹 | `su` 路径、Root 管理器包、挂载表、`ro.boot.*` |
+| 物理事实 | 内存、ABI、核心数、主频——并指出这些**无法伪装** |
+| 硬件证明状态 | 明确标注天花板在哪 |
+| **基线对照** | 首次运行记录身份哈希，之后对比。**"模块到底生效了没"这个问题没有基线就无法回答** |
+| 报告导出 | 一键复制全文，便于反馈 |
+
+### 关于 root
+
+> **Guise 自己不需要 root。** 它不调用 `su`，不申请 root 权限，只有 LSPosed 一层。
+>
+> 但它运行在 LSPosed 之上，而 LSPosed 需要一个已解锁 bootloader 并已 root（Magisk / KernelSU）的设备。
+
+经过真机验证，**没有加入 root 层和 Zygisk 层**。详细理由见 [`docs/FINDINGS.md`](docs/FINDINGS.md)——简言之：已有的隐藏模块生态做得更好，重造只会与它们冲突；而 Zygisk 的必要性是**平台相关**的（高通有观测点，联发科没有）。
+
+## 前置要求
+
+| 项 | 要求 |
+|---|---|
+| Android 版本 | **9.0 及以上**（API 28+） |
+| 设备状态 | 已解锁 bootloader |
+| Root | Magisk 或 KernelSU（**因为 LSPosed 需要**，不是 Guise 需要） |
+| 框架 | **LSPosed**，API 101 及以上（即较新的版本） |
+| 安装包 | `Guise-*.apk`（模块 + 管理界面）；`GuiseProbe-*.apk`（探针，**可选但强烈建议**） |
+| 从源码构建 | JDK **17–21**、Android SDK **platform 36**、**build-tools 36.0.0** |
+
+## 安装
+
+1. 从 [**Releases**](https://github.com/Eternalcherryblossoms/guise/releases) 下载两个 APK
+2. 安装 `Guise-*.apk`（模块本体 + 管理界面）
+3. 安装 `GuiseProbe-*.apk`（探针，用于验证效果）
+4. 打开 **LSPosed 管理器 → 模块 → 启用 Guise**
+5. 重启手机（让模块加载）——**只需这一次**
+
+> 当前发布的是 debug 构建，包名为 `io.guise.debug` 和 `io.guise.probe.debug`。
+
+## 使用
+
+### 1. 选目标应用
+
+打开 **Guise** → 右下角 **`+`** → 从应用列表里选一个要伪装的目标。
+
+### 2. 选机型档案
+
+从内置机型库里挑一台。挑选时注意两点：
+
+- **Android 版本会取自你的设备**（不是档案的），所以版本差异不会造成矛盾
+- **但内存容量和 ABI 列表无法伪装**，必须尽量匹配。例如你的设备是 12GB 而档案机型只有 8GB，带机型库的 SDK 可以直接识破
+
+也可以点右下角 **「抓取」** 把本机存为档案——这是最可靠的做法。
+
+### 3. 重启目标应用
+
+**强制停止并重新打开那个应用**（不是重启手机）。配置是热更新的，但已经加载的类不会回退。
+
+### 4. 验证效果（重要）
+
+1. 回到 Guise，把 **`io.guise.probe.debug`**（探针）也加为目标应用
+2. 打开探针，等它采集完成
+3. 看两个数字：**「不一致 N 项」** 和 **「痕迹暴露 N 项」**
+
+**理想结果是两个都是 0。** 不一致意味着平台自相矛盾（配置有问题）；痕迹暴露意味着改写机制本身被看见了。
+
+> 探针第一次运行会记录基线。之后每次运行都会告诉你**具体哪些字段发生了变化**——这是"模块到底生效了没"唯一可靠的判据。
+
+### 5. 反馈
+
+探针页有 **「复制报告」**。带上这份报告开 issue，比只说"没效果"有用得多。
+
+## 它不做什么
+
+| | 为什么 |
+|---|---|
+| **不伪造硬件证明（Key Attestation）** | 证书在 TEE 内签名，`rootOfTrust` 由 bootloader 提供。**任何 hook 都够不到**。Play Integrity 的强完整性判定就在这一层 |
+| **不伪造物理事实** | 内存容量（`ActivityManager` 走 binder）、ABI 列表（由 native ABI 派生）、核心数、主频——都改不了 |
+| **不改 SIM 相关标识** | IMSI / SIM 序列号 / 运营商码属于 SIM 卡，不是手机。档案里没有运营商身份，编出来的值只会和真实 SIM 矛盾 |
+| **不改 SSID / BSSID** | 那是网络环境，不是设备属性 |
+| **不伪造传感器噪声、GPU 时序** | 那是硅片的物理特性。一台设备伪装成一百台，身体还是只有一副——这正是服务端聚类能抓到的原因 |
+
+**一句话**：Guise 改变的是平台**上报**什么，不是**事实**是什么。
+
+## 下载与更新
+
+最新版在 [**Releases**](https://github.com/Eternalcherryblossoms/guise/releases)。资产由 CI 在每次打 tag 时构建。
+
+应用内可检查更新（**关于** 页）。没有服务器、没有账号、没有推送通道——安卓上真正的推送意味着 Firebase、Google 服务和一个常驻设备标识符，**在一个专门用来少给标识符的模块里放这个是自相矛盾的**。
+
+更新检查是**一次未认证的 HTTPS GET**，无设备标识、无账号、无参数，且只在打开「关于」页时才发起。
+
+> ⚠️ **仅在仓库公开时有效。** 私有仓库的 Releases API 对未认证请求返回 404，应用会静默显示"未发现新版本"。
+
+## 从源码构建
 
 ```bash
-# Requires JDK 17-21 and an Android SDK with platform 36.
-./gradlew :core:test :app:assembleDebug
+# 需要 JDK 17-21
+./gradlew :core:test :app:assembleDebug :probe:assembleDebug
 ```
 
-Output: `app/build/outputs/apk/debug/Guise-debug-4.0.0.apk`
+产物：`app/build/outputs/apk/debug/Guise-debug-*.apk`
 
-### Toolchain notes
+**发布版本**：推送一个 `v*` tag，CI 会自动构建并发布。
 
-- **AGP 8.13.2 / Gradle 8.14.3 / Kotlin 2.4.20**, `compileSdk 36`, `minSdk 28`.
-- **libxposed is pinned to 101.0.0, not 102.0.0.** Version 102 declares
-  `minCompileSdk=37`, and the SDK repository does not publish platform 37. Version 101.0.0
-  declares `minCompileSdk=36` and exposes every API used here (verified against its
-  published sources: `Hooker`/`Chain`, `ExceptionMode`, remote preferences, remote files,
-  and the full module lifecycle).
-- A **debug keystore is committed under `keystore/`** so the build does not depend on a
-  writable home directory.
-
-## Layout and layers
-
-Guise is layered rather than monolithic. Each layer is a separate insertion point into the
-"what the system tells the app" pipeline, and they trade reach against detectability.
-
-```
-core/    pure JVM: profile model, catalog, config codec. Unit-tested off-device.
-xposed/  LSPosed layer: module entry, Java-visible channels, catalog asset,
-         META-INF/xposed descriptors.
-app/     Compose management UI and the XposedService client.
-probe/   the diagnostic harness (see below).
+```bash
+git tag v5.2.0 && git push origin v5.2.0
 ```
 
-`core` has no Android dependencies on purpose, so the coherence rules that matter most are
-tested on the desktop JVM rather than on a rooted handset.
+## 项目结构
 
-The intended full architecture adds two more layers, documented in
-[`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md):
+```
+core/    纯 JVM：档案模型、机型库、配置编解码。无 Android 依赖，可在桌面单测
+xposed/  LSPosed 层：模块入口、8 个通道、机型库 asset、META-INF/xposed 描述符
+app/     Compose 管理界面、配置写入、机型抓取、更新检查
+probe/   诊断探针（独立应用）
+docs/    架构说明与实测发现
+```
 
-| Layer | State | Insertion point | Granularity |
-|---|---|---|---|
-| `:core` | implemented | -- shared coherence substrate -- | -- |
-| `:xposed` | implemented | Java APIs in the target process | per app |
-| `:probe` | implemented | reads what an observer reads | per app |
-| `:app` | implemented | config writer, root bridge | -- |
-| `:zygisk` | designed | libc, `/proc`, `/sys`, raw syscalls | per process |
-| `:magisk` | designed | boot-time properties, root concealment | whole device |
+`core` 刻意不依赖 Android：**最容易出错的那部分逻辑，不需要一台 root 过的手机就能验证。**
 
-**The contract between them is that a channel has exactly one owner.** If two layers faked
-the same observable they would race; if one rewrote `/proc/cpuinfo` while another reported a
-`Build.BOARD` for a different SoC, they would contradict each other -- the exact incoherence
-this project exists to remove. The rationale for each assignment, and an honest account of
-what the root layer does and does not buy, is in the architecture document.
+## 常见问题
 
-## The probe
+**选了档案但目标应用没变化？**
+确认 LSPosed 里已启用 Guise、且该应用在模块作用域内，然后**强制停止并重开目标应用**。
 
-`probe/` is a diagnostic harness, not part of the module. It claims **no permissions** and
-reads only what any ordinary app can read, because its whole value depends on seeing exactly
-what an observer sees.
+**探针报「内核 SoC 描述不一致」？**
+高通设备上已知。`/sys/devices/soc0/machine` 会说出真实芯片（如 `Snapdragon`）。当前版本没有覆盖它——需要 Zygisk 层在进程私有 mount namespace 里伪造该文件。**临时办法：选一个同平台的档案。**
 
-It cannot tell truth from a coherent lie -- no client can, which is this project's central
-claim. So it measures two things it *can* measure:
+**探针报内存或 ABI 不符？**
+这两项无法伪装。换一个内存容量和 ABI 列表与真机匹配的档案。
 
-1. **Self-consistency.** The same facts are read from three independent sources -- Java APIs,
-   `SystemProperties`, and `/proc`/`/sys` -- hashed separately, and compared. A module that
-   rewrites only the Java surface (by far the most common way for one of these to be
-   half-working) leaves the other two saying something else, and the disagreement **names the
-   leaking field** rather than merely flagging that one exists.
+**探针报「注入痕迹可见」？**
+`/proc/self/maps` 里出现了 Zygisk/LSPosed 的 `.so` 路径。装一个隐藏模块（如 Shamiko）即可。
 
-2. **Coverage and visibility.** Whether the kernel's own SoC description agrees with the
-   framework's claim, and whether the rewriting machinery is visible in `/proc/self/maps` or
-   on the classpath. Roots and injections that are visible make the spoof pointless: many
-   apps refuse to run at all once they see them.
+**更新检查没反应？**
+仓库为私有、尚无 Release、或当前无网络——三种情况表现相同。
 
-It also records a **baseline** on first run, because "did enabling the module change
-anything?" cannot be answered without one.
+## 许可
 
-Checks that cannot be passed -- hardware attestation, physical facts such as total memory and
-core count -- are reported honestly as such, with the reason. Making the ceiling visible is
-more useful than implying it can be moved.
+LGPL-3.0，见 [LICENSE](LICENSE)。本项目是对 [kingsollyu/AppEnv](https://github.com/kingsollyu/AppEnv) 的重建，沿用其许可证；**没有共享任何代码**。
 
-## Catalog data
+---
 
-`xposed/src/main/assets/catalog.json` ships six handsets across six SoCs.
+<a id="english"></a>
 
-The identity fields reflect shipping configurations. The **build metadata fields
-(`buildId`, `buildIncremental`, security patch level, build host) are format-correct
-examples, not verified dumps** -- they cannot be transcribed reliably from a spec sheet.
+# English
 
-Two things keep that honest: the fingerprint is derived from those fields so it is always
-internally consistent, and the app offers **"Capture this device"**, which produces a
-profile from a real handset with every field read from the platform. Prefer captures, and
-treat the bundled entries as a starting point.
+## What this is
 
-### Contributing a device
+An Android app never observes the hardware. It observes **what the platform tells it**, and
+every layer of that telling is software, and every layer is writable.
 
-Captures are the only way a profile is trustworthy, so a contributed `catalog.json` fragment
-from a real handset is worth more than a hand-written entry:
+Most tools in this space hand you a field table: set `Build.MODEL`, `Build.BRAND`,
+`Build.DEVICE`, each independently. The result is easy to get wrong -- a device whose
+fingerprint says Xiaomi, whose GPU says Pixel and whose product codename says Samsung. That
+kind of cross-channel contradiction is exactly what a fingerprinting SDK looks for.
 
-1. Run the probe app on the device and use **Copy report**.
-2. In the management app, use **Capture this device**.
-3. Open an issue with both. The report is what shows which channels the profile would still
-   leak on, and the capture is the profile itself.
+Guise takes a different approach:
 
-## What the probe found on real hardware
+> **A spoofed device is a complete, self-consistent profile -- not a set of fields.**
 
-Recorded because negative results are as useful as positive ones, and because several of these
-corrected a design assumption that looked reasonable on paper.
+Values implied by other values (the build fingerprint, the era of the build ID) are *computed*
+rather than *stored*, so they cannot contradict anything.
 
-| Finding | Consequence |
+## Features
+
+### Channels covered (8)
+
+| Channel | What it covers |
 |---|---|
-| **Codec vendor prefixes leak the real chip on every device tried** (`c2.mtk.` on MediaTek, `c2.qti.`/`OMX.qcom.` on Qualcomm) | The one coverage gap that is universal. `MediaCodecChannel` addresses it, opt-in. |
-| **`/sys/devices/soc0/machine` exists on Qualcomm and reads `Snapdragon`; it does not exist on MediaTek** | The case for a Zygisk layer is platform-dependent, not general. |
-| **LSPosed via Zygisk leaves its `.so` paths in `/proc/self/maps` unless a concealment module hides them** | The injection check needs actual paths, not vendor tokens, to tell real from false. |
-| **Magisk with concealment modules leaves nothing visible**: no `su` path, no mount, and it rewrites `ro.boot.*` to claim a locked bootloader | Building own root concealment would duplicate an ecosystem that already works, and would fight it. |
-| **`ro.boot.verifiedbootstate=green` alongside an installed root manager is an impossible state** | A cross-check worth running: it means something is already rewriting those properties. |
-| **Total RAM and the ABI list cannot be spoofed** (`ActivityManager` is a binder call, `SUPPORTED_ABIS` is derived from the native ABI) | A profile whose handset shipped with different memory or a different ABI set is unfixably inconsistent. A profile-selection problem, not a code problem. |
-| **Fingerprint release must agree with the build ID's era** (AOSP names release branches by letter: `T`=13, `U`=14, `AP*`=15, `BP*`=16) | Caught a regression introduced while making the release come from the device. |
+| `Build.*` | brand, manufacturer, model, device, product, board, hardware, fingerprint, bootloader, display, build ID, tags, type, host, user, build time |
+| `Build.VERSION.*` | release, incremental, security patch level |
+| `Build.getSerial()` | the accessor apps actually call, not the constant that has read `UNKNOWN` since API 26 |
+| `SystemProperties` | 23 `ro.*` keys across `get` / `getInt` / `getLong` / `getBoolean` -- plenty of integrity checks read properties rather than `Build` |
+| `Settings.Secure` | SSAID (`ANDROID_ID`), synthesised stably per profile |
+| GPU | `GLES20/30/31.glGetString` vendor and renderer -- supplied by the real driver, which makes it the cheapest cross-check available |
+| Telephony | IMEI / MEID, synthesised and Luhn-valid |
+| Wi-Fi | `WifiInfo.getMacAddress`, `NetworkInterface.getHardwareAddress` |
+
+Two further channels are **opt-in per target** and off by default:
+
+| Channel | Why it is opt-in |
+|---|---|
+| Codec vendor prefixes | `MediaCodecList` names its components with the silicon vendor (`c2.mtk.`, `c2.qti.`), and that list comes from vendor configuration, so nothing else hides the real chip. But the list can only be **filtered, never extended**, and hiding a codec an app needs shows up as broken playback. |
+| Screen density | Rewriting density changes the target's layout. Resolution is not touched at all: `DisplayMetrics` is read from too many paths that never pass through `Resources.updateConfiguration`, and a half-changed display is worse than either extreme. |
+
+### Coherence guarantees
+
+1. **The fingerprint is derived, not stored.** `BRAND/PRODUCT/DEVICE:RELEASE/ID/INCREMENTAL:TYPE/TAGS`
+   is computed from the other fields, so it cannot disagree with them.
+2. **Version and build-ID era come from the running device.** The API level cannot be safely
+   rewritten -- raising it makes an app take code paths this ROM does not have, and lowering it
+   hides real ones, both of which crash -- so the release has to match it, and the build ID's
+   version token has to follow. This is what prevents a fingerprint like
+   "Android 16 carrying an Android 13 build ID".
+3. **Profiles are shared at the SoC level.** GPU renderer, platform, ABI list and codec prefixes
+   belong to the chip, not the handset. A few dozen SoCs cover most phones, and every device
+   sharing a chip automatically shares the values that must agree with it.
+
+### Per-app granularity
+
+Each target is configured independently. Scope **grows on demand**: the module adds a package
+to LSPosed's scope through `XposedService` only when you configure it, rather than pre-selecting
+apps you never meant to touch.
+
+### Device catalog
+
+**14 devices across 11 SoCs** are bundled. Two mechanisms matter more than the numbers:
+
+- **Capture this device** -- reads every field from the real handset, 100% accurate
+- **User catalog overlay** -- your captures take precedence over bundled entries
+
+Identity fields (brand, model, codenames, SoC, display) in the bundled entries are transcribed
+accurately. **Build metadata is format-correct, not a verified dump** -- that data cannot be
+transcribed reliably from a spec sheet. The file says which entry is a real capture.
+
+### The probe (a separate app)
+
+This is the part of the project that is genuinely unusual. **It makes no truth judgements** --
+no client can, which is the whole thesis. It measures the two things a client *can* measure:
+
+| Check | Purpose |
+|---|---|
+| **Aggregate hash (three sources)** | The same facts are read from the Java APIs, from `SystemProperties`, and from `/proc`+`/sys`, and hashed separately. Where the hashes differ it **names the channel that failed to keep up** -- a coverage measurement that needs no device database |
+| Java vs property mirror | Field-by-field. Patching the Java surface while leaving the property surface is the most common way for one of these modules to be half-working |
+| Fingerprint shape | Format, segment counts, release vs API level, release vs build-ID era |
+| Kernel SoC vs framework claim | `/sys/devices/soc0/machine` comes from the kernel and a Java hook cannot reach it |
+| Codec vendor prefixes | Lists the prefixes actually present and whether they contradict the claimed chip |
+| Injection visibility | Suspicious entries in `/proc/self/maps` (**actual paths**, not vendor tokens) and framework classes on the classpath |
+| Root traces | `su` paths, root manager packages, mount table, `ro.boot.*` |
+| Physical facts | RAM, ABI list, core count, clock -- and states plainly that these **cannot be spoofed** |
+| Attestation status | Makes the ceiling explicit rather than implying it can be moved |
+| **Baseline** | Records an identity hash on first run and diffs later. **"Did the module do anything?" cannot be answered without one** |
+| Report export | One tap to copy the whole thing for a bug report |
+
+### About root
+
+> **Guise does not need root.** It never calls `su` and requests no root permission. There is
+> one layer: LSPosed.
+>
+> It runs *on* LSPosed, and LSPosed needs an unlocked bootloader and a rooted device
+> (Magisk or KernelSU).
+
+A root layer and a Zygisk layer were designed and then **dropped on evidence** from real
+hardware. The reasoning is in [`docs/FINDINGS.md`](docs/FINDINGS.md); briefly: the existing
+concealment ecosystem does that job better and rebuilding it would only fight it, and the case
+for Zygisk turns out to be **platform-dependent** (Qualcomm exposes the observation point,
+MediaTek does not).
+
+## Prerequisites
+
+| | Requirement |
+|---|---|
+| Android | **9.0 or later** (API 28+) |
+| Device | Bootloader unlocked |
+| Root | Magisk or KernelSU -- **because LSPosed needs it, not because Guise does** |
+| Framework | **LSPosed**, API 101 or newer |
+| Packages | `Guise-*.apk` (module + management UI); `GuiseProbe-*.apk` (probe, optional but strongly recommended) |
+| Building | JDK **17-21**, Android SDK **platform 36**, **build-tools 36.0.0** |
+
+## Install
+
+1. Download both APKs from [**Releases**](https://github.com/Eternalcherryblossoms/guise/releases)
+2. Install `Guise-*.apk` (the module and its management UI)
+3. Install `GuiseProbe-*.apk` (the probe, for verification)
+4. Open **LSPosed manager -> Modules -> enable Guise**
+5. Reboot -- **once**, to load the module
+
+> The published APKs are debug builds, so their packages are `io.guise.debug` and
+> `io.guise.probe.debug`.
+
+## Usage
+
+### 1. Pick a target app
+
+Open **Guise**, tap **`+`**, and choose the app you want to disguise.
+
+### 2. Pick a device profile
+
+Choose one from the bundled catalog. Two things to watch:
+
+- **The Android version comes from your device**, not from the profile, so a version difference
+  cannot create a contradiction
+- **RAM size and the ABI list cannot be spoofed**, so they should match. A handset with 12 GB
+  claiming an 8 GB model is a device-database lookup away from being caught
+
+You can also tap **Capture this device** to snapshot the handset you are holding. That is the
+most reliable option.
+
+### 3. Restart the target app
+
+**Force-stop and reopen it** -- not a reboot. Configuration updates live, but classes already
+loaded do not go back.
+
+### 4. Verify (this is the important step)
+
+1. Back in Guise, add **`io.guise.probe.debug`** as a target too
+2. Open the probe and let it collect
+3. Read two numbers: **incoherent items** and **exposed traces**
+
+**The result you want is 0 and 0.** Incoherence means the platform is contradicting itself
+(the configuration is wrong). Exposure means the rewriting machinery is visible.
+
+> The probe records a baseline on first run. Every run after that tells you **exactly which
+> fields changed** -- the only reliable answer to "did the module actually do anything?"
+
+### 5. Reporting a problem
+
+The probe has **Copy report**. An issue with that report attached is worth far more than
+"it doesn't work".
+
+## What it does not do
+
+| | Why |
+|---|---|
+| **Forge hardware attestation** | The Key Attestation certificate is signed inside the TEE, and `rootOfTrust` comes from the bootloader. **No hook reaches it.** Play Integrity's strong verdict lives here |
+| **Forge physical facts** | RAM (`ActivityManager` is a binder call), the ABI list (derived from the native ABI), core count and clock are all out of reach |
+| **Touch SIM identifiers** | IMSI, SIM serial and operator codes belong to the SIM card, not the phone. A profile carries no carrier identity, so any invented value would contradict the real SIM |
+| **Touch SSID / BSSID** | Those describe the network, not the device |
+| **Forge sensor noise or GPU timing** | Those are properties of the silicon. A device presenting a hundred identities still has one body -- which is exactly what server-side clustering keys on |
+
+**In one line**: Guise changes what the platform *reports*, not what is *true*.
+
+## Download and updates
+
+The latest build is on [**Releases**](https://github.com/Eternalcherryblossoms/guise/releases).
+Assets are built by CI whenever a tag is pushed.
+
+The app can check for updates from its **About** screen. There is no server, no account and no
+push channel: real push on Android means Firebase, Play services and a permanent device
+identifier -- out of place in a module whose whole point is to hand out fewer identifiers.
+
+The check is **one unauthenticated HTTPS GET**, with no device identifier, no account and no
+query string. It runs when you open the About screen, not on every launch.
+
+> ⚠️ **This only works while the repository is public.** GitHub returns 404 for the releases API
+> of a private repository, and the app treats that as "no update information" rather than an
+> error.
+
+## Building from source
+
+```bash
+# Requires JDK 17-21
+./gradlew :core:test :app:assembleDebug :probe:assembleDebug
+```
+
+Output: `app/build/outputs/apk/debug/Guise-debug-*.apk`
+
+**Releasing**: push a `v*` tag and CI builds and publishes it.
+
+```bash
+git tag v5.2.0 && git push origin v5.2.0
+```
+
+## Layout
+
+```
+core/    pure JVM: profile model, catalog, config codec. No Android dependencies, tested on the desktop
+xposed/  the LSPosed layer: module entry, 8 channels, catalog asset, META-INF/xposed descriptors
+app/     Compose management UI, config writer, device capture, update check
+probe/   the diagnostic harness (a separate app)
+docs/    architecture and findings
+```
+
+`core` has no Android dependencies on purpose: **the logic most likely to be wrong is the logic
+that can be verified without a rooted handset.**
+
+## FAQ
+
+**I picked a profile but the app is unchanged.**
+Check that Guise is enabled in LSPosed and that the app is in the module's scope, then
+**force-stop and reopen the target app**.
+
+**The probe reports an incoherent kernel SoC.**
+Known on Qualcomm: `/sys/devices/soc0/machine` names the real chip (e.g. `Snapdragon`). This
+build does not cover it -- that needs a Zygisk layer faking the file inside the process's
+private mount namespace. **Workaround: choose a profile on the same platform.**
+
+**The probe reports a RAM or ABI mismatch.**
+Neither can be spoofed. Choose a profile whose memory size and ABI list match the handset.
+
+**The probe reports visible injection traces.**
+Zygisk/LSPosed `.so` paths are showing up in `/proc/self/maps`. Install a concealment module
+such as Shamiko.
+
+**The update check does nothing.**
+Private repository, no release published, or no network -- all three look identical.
 
 ## Licence
 
-LGPL-3.0. See [LICENSE](LICENSE).
+LGPL-3.0. See [LICENSE](LICENSE). This project is a rebuild of
+[kingsollyu/AppEnv](https://github.com/kingsollyu/AppEnv) and follows its licence; **no code is
+shared with it**.
 
-The licence follows the original project that this one is a rebuild of,
-[kingsollyu/AppEnv](https://github.com/kingsollyu/AppEnv), which is LGPL-3.0. No code is shared
-with it -- the transport, the API target, the data model and every channel are new -- but the
-purpose is the same and its source was read in the course of the rebuild, so the
-conservative choice is to keep the same licence. Change it if you consider the rewrite
-clean-room.
+---
 
+## 相关文档 / Further reading
+
+| | |
+|---|---|
+| [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) | 分层设计、插入点分类、通道归属契约 / Layer design, insertion points, channel ownership |
+| [`docs/FINDINGS.md`](docs/FINDINGS.md) | 原版死因、真机实测发现（含否定结果）/ Why the original died, and what real hardware disproved |
