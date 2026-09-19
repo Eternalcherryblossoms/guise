@@ -83,9 +83,16 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
-          ls -l apks
+          # find rather than a glob: upload-artifact preserves each file's path relative to
+          # the repo root, so the APKs land at apks/app/build/... and apks/probe/build/...,
+          # and a naive apks/*.apk matches nothing. (It did, on the first attempt.)
+          mapfile -t apks < <(find apks -type f -name '*.apk' | sort)
+          if [ "${#apks[@]}" -eq 0 ]; then
+            echo "no APK found under apks/"; find apks -type f | head -20; exit 1
+          fi
+          printf '%s\n' "${apks[@]}"
           gh release create "${GITHUB_REF_NAME}" \
             --repo "${GITHUB_REPOSITORY}" \
             --title "${GITHUB_REF_NAME}" \
             --generate-notes \
-            apks/*.apk
+            "${apks[@]}"
