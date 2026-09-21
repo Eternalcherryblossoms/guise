@@ -39,7 +39,14 @@ rootProject.name = "Guise"
 // :app    - Compose management UI, root bridge, and the Magisk payload installer.
 // :probe  - the diagnostic harness. Claims no permissions and reads only what any ordinary
 //           app can read, because its value depends on seeing exactly what an observer sees.
+//
+// :catalog-gen - build-time only, never shipped. Turns the hand-maintained seed corpus into
+//           xposed/src/main/assets/catalog.json and fails the build on drift or on a coverage
+//           hole. It depends on :core so that a generated catalog is checked by the same
+//           validator the test suite uses -- a generator with its own copy of the rules would
+//           validate its own mistakes.
 include(":core")
 include(":xposed")
 include(":app")
 include(":probe")
+include(":catalog-gen")

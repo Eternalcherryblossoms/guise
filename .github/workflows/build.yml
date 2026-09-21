@@ -50,6 +50,14 @@ jobs:
       - name: Unit tests
         run: ./gradlew :core:test --stacktrace
 
+      # The shipped catalog is a *function* of catalog/seed/corpus.json, and this is what makes
+      # that true rather than aspirational: it fails if the committed asset has drifted from the
+      # seed, if any entry lost its attribution, or if a required memory tier has no device and
+      # no written waiver. Hand-editing the shipped catalog is therefore not possible without
+      # the build noticing.
+      - name: Verify the device catalog matches its seed
+        run: ./gradlew :catalog-gen:run --args="--check" --stacktrace
+
       - name: Assemble
         run: ./gradlew :xposed:assembleDebug :app:assembleDebug :probe:assembleDebug --stacktrace
 

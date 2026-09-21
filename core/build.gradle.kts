@@ -1,4 +1,5 @@
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
+import org.gradle.api.tasks.PathSensitivity
 
 plugins {
     alias(libs.plugins.kotlin.jvm)
@@ -26,4 +27,13 @@ kotlin {
 tasks.withType<Test>().configureEach {
     useJUnit()
     testLogging { events("passed", "failed", "skipped") }
+
+    // The catalog lives in :xposed's assets and TestCatalog finds it by searching sibling
+    // module directories, so Gradle has no idea the suite depends on it. Declaring it as an
+    // input is what stops a catalog change from leaving the tests "up-to-date" -- which would
+    // mean a malformed catalog ships behind a green test report. Observed, not theoretical:
+    // regenerating catalog.json left :core:test UP-TO-DATE in this very session.
+    inputs.file(rootProject.file("xposed/src/main/assets/catalog.json"))
+        .withPropertyName("bundledCatalog")
+        .withPathSensitivity(PathSensitivity.RELATIVE)
 }

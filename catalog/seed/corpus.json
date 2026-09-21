@@ -1,0 +1,810 @@
+{
+    "socs": {
+        "sm8250": {
+            "key": "sm8250",
+            "vendor": "Qualcomm",
+            "marketingName": "Snapdragon 865",
+            "platform": "kona",
+            "hardware": "qcom",
+            "board": "kona",
+            "cpuImplementer": "0x41",
+            "cpuPart": "0xd0d",
+            "cores": 8,
+            "gpuVendor": "Qualcomm",
+            "gpuRenderer": "Adreno (TM) 650",
+            "abis": [
+                "arm64-v8a",
+                "armeabi-v7a",
+                "armeabi"
+            ],
+            "codecPrefixes": [
+                "c2.qti.",
+                "OMX.qcom."
+            ]
+        },
+        "sm7250": {
+            "key": "sm7250",
+            "vendor": "Qualcomm",
+            "marketingName": "Snapdragon 765G",
+            "platform": "lito",
+            "hardware": "qcom",
+            "board": "lito",
+            "cpuImplementer": "0x41",
+            "cpuPart": "0xd0b",
+            "cores": 8,
+            "gpuVendor": "Qualcomm",
+            "gpuRenderer": "Adreno (TM) 620",
+            "abis": [
+                "arm64-v8a",
+                "armeabi-v7a",
+                "armeabi"
+            ],
+            "codecPrefixes": [
+                "c2.qti.",
+                "OMX.qcom."
+            ]
+        },
+        "sm8350": {
+            "key": "sm8350",
+            "vendor": "Qualcomm",
+            "marketingName": "Snapdragon 888",
+            "platform": "lahaina",
+            "hardware": "qcom",
+            "board": "lahaina",
+            "cpuImplementer": "0x41",
+            "cpuPart": "0xd44",
+            "cores": 8,
+            "gpuVendor": "Qualcomm",
+            "gpuRenderer": "Adreno (TM) 660",
+            "abis": [
+                "arm64-v8a",
+                "armeabi-v7a",
+                "armeabi"
+            ],
+            "codecPrefixes": [
+                "c2.qti.",
+                "OMX.qcom."
+            ]
+        },
+        "sm8550": {
+            "key": "sm8550",
+            "vendor": "Qualcomm",
+            "marketingName": "Snapdragon 8 Gen 2",
+            "platform": "kalama",
+            "hardware": "qcom",
+            "board": "kalama",
+            "cpuImplementer": "0x41",
+            "cpuPart": "0xd4e",
+            "cores": 8,
+            "gpuVendor": "Qualcomm",
+            "gpuRenderer": "Adreno (TM) 740",
+            "abis": [
+                "arm64-v8a",
+                "armeabi-v7a",
+                "armeabi"
+            ],
+            "codecPrefixes": [
+                "c2.qti.",
+                "OMX.qcom."
+            ]
+        },
+        "gs101": {
+            "key": "gs101",
+            "vendor": "Google",
+            "marketingName": "Google Tensor",
+            "platform": "gs101",
+            "hardware": "gs101",
+            "board": "gs101",
+            "cpuImplementer": "0x41",
+            "cpuPart": "0xd44",
+            "cores": 8,
+            "gpuVendor": "ARM",
+            "gpuRenderer": "Mali-G78",
+            "abis": [
+                "arm64-v8a",
+                "armeabi-v7a",
+                "armeabi"
+            ],
+            "codecPrefixes": [
+                "c2.android.",
+                "c2.google.",
+                "c2.gs101.",
+                "OMX.google."
+            ]
+        },
+        "gs201": {
+            "key": "gs201",
+            "vendor": "Google",
+            "marketingName": "Google Tensor G2",
+            "platform": "gs201",
+            "hardware": "gs201",
+            "board": "gs201",
+            "cpuImplementer": "0x41",
+            "cpuPart": "0xd44",
+            "cores": 8,
+            "gpuVendor": "ARM",
+            "gpuRenderer": "Mali-G710",
+            "abis": [
+                "arm64-v8a",
+                "armeabi-v7a",
+                "armeabi"
+            ],
+            "codecPrefixes": [
+                "c2.android.",
+                "c2.google.",
+                "c2.gs201.",
+                "OMX.google."
+            ]
+        },
+        "mt6895": {
+            "key": "mt6895",
+            "vendor": "MediaTek",
+            "marketingName": "Dimensity 8100",
+            "platform": "mt6895",
+            "hardware": "mt6895",
+            "board": "mt6895",
+            "cpuImplementer": "0x41",
+            "cpuPart": "0xd41",
+            "cores": 8,
+            "gpuVendor": "ARM",
+            "gpuRenderer": "Mali-G610 MC6",
+            "abis": [
+                "arm64-v8a",
+                "armeabi-v7a",
+                "armeabi"
+            ],
+            "codecPrefixes": [
+                "c2.android.",
+                "OMX.google.",
+                "c2.mtk.",
+                "OMX.MTK."
+            ]
+        },
+        "sm8250_ac": {
+            "key": "sm8250_ac",
+            "vendor": "Qualcomm",
+            "marketingName": "Snapdragon 870",
+            "platform": "kona",
+            "hardware": "qcom",
+            "board": "kona",
+            "cpuImplementer": "0x41",
+            "cpuPart": "0xd0d",
+            "cores": 8,
+            "gpuVendor": "Qualcomm",
+            "gpuRenderer": "Adreno (TM) 650",
+            "abis": [
+                "arm64-v8a",
+                "armeabi-v7a",
+                "armeabi"
+            ],
+            "codecPrefixes": [
+                "c2.qti.",
+                "OMX.qcom.",
+                "c2.android.",
+                "OMX.google."
+            ]
+        },
+        "sm8450": {
+            "key": "sm8450",
+            "vendor": "Qualcomm",
+            "marketingName": "Snapdragon 8 Gen 1",
+            "platform": "waipio",
+            "hardware": "qcom",
+            "board": "waipio",
+            "cpuImplementer": "0x41",
+            "cpuPart": "0xd48",
+            "cores": 8,
+            "gpuVendor": "Qualcomm",
+            "gpuRenderer": "Adreno (TM) 730",
+            "abis": [
+                "arm64-v8a",
+                "armeabi-v7a",
+                "armeabi"
+            ],
+            "codecPrefixes": [
+                "c2.qti.",
+                "OMX.qcom.",
+                "c2.android.",
+                "OMX.google."
+            ]
+        },
+        "sm8650": {
+            "key": "sm8650",
+            "vendor": "Qualcomm",
+            "marketingName": "Snapdragon 8 Gen 3",
+            "platform": "pineapple",
+            "hardware": "qcom",
+            "board": "pineapple",
+            "cpuImplementer": "0x41",
+            "cpuPart": "0xd82",
+            "cores": 8,
+            "gpuVendor": "Qualcomm",
+            "gpuRenderer": "Adreno (TM) 750",
+            "abis": [
+                "arm64-v8a",
+                "armeabi-v7a",
+                "armeabi"
+            ],
+            "codecPrefixes": [
+                "c2.qti.",
+                "OMX.qcom.",
+                "c2.android.",
+                "OMX.google."
+            ]
+        },
+        "gs301": {
+            "key": "gs301",
+            "vendor": "Google",
+            "marketingName": "Google Tensor G3",
+            "platform": "zuma",
+            "hardware": "zuma",
+            "board": "zuma",
+            "cpuImplementer": "0x41",
+            "cpuPart": "0xd4e",
+            "cores": 9,
+            "gpuVendor": "ARM",
+            "gpuRenderer": "Mali-G715",
+            "abis": [
+                "arm64-v8a",
+                "armeabi-v7a",
+                "armeabi"
+            ],
+            "codecPrefixes": [
+                "c2.android.",
+                "c2.google.",
+                "OMX.google."
+            ]
+        }
+    },
+    "devices": [
+        {
+            "profile": {
+                "key": "google_bluejay",
+                "name": "Google Pixel 6a",
+                "brand": "google",
+                "manufacturer": "Google",
+                "model": "GX7AS",
+                "product": "bluejay",
+                "device": "bluejay",
+                "androidRelease": "12",
+                "sdkInt": 31,
+                "securityPatch": "2022-06-05",
+                "buildId": "SP2A.220505.002",
+                "buildIncremental": "8702685",
+                "buildType": "user",
+                "buildTags": "release-keys",
+                "buildHost": "abfarm-release-rbe-64-0010",
+                "buildUser": "android-build",
+                "buildTimeMs": 0,
+                "displayId": "SP2A.220505.002",
+                "bootloader": "bluejay-1.2-8734334",
+                "socKey": "gs101",
+                "display": {
+                    "widthPx": 1080,
+                    "heightPx": 2400,
+                    "densityDpi": 429,
+                    "refreshRates": [
+                        60.0
+                    ]
+                },
+                "ramBytes": 6442450944
+            },
+            "source": "Hand-entered from published Pixel factory-image build data (Android 12, SP2A.220505.002, patch 2022-06-05).",
+            "sourceUrl": "https://developers.google.com/android/images",
+            "verified": false,
+            "note": "6 GB tier."
+        },
+        {
+            "profile": {
+                "key": "google_husky",
+                "name": "Google Pixel 8 Pro",
+                "brand": "google",
+                "manufacturer": "Google",
+                "model": "GC3VE",
+                "product": "husky",
+                "device": "husky",
+                "androidRelease": "14",
+                "sdkInt": 34,
+                "securityPatch": "2024-02-05",
+                "buildId": "UQ1A.240205.004",
+                "buildIncremental": "11228896",
+                "buildType": "user",
+                "buildTags": "release-keys",
+                "buildHost": "abfarm-release-rbe-64-0008",
+                "buildUser": "android-build",
+                "buildTimeMs": 0,
+                "displayId": "UQ1A.240205.004",
+                "bootloader": "husky-14.3-11261976",
+                "socKey": "gs301",
+                "display": {
+                    "widthPx": 1344,
+                    "heightPx": 2992,
+                    "densityDpi": 489,
+                    "refreshRates": [
+                        60.0,
+                        120.0
+                    ]
+                },
+                "ramBytes": 12884901888
+            },
+            "source": "Hand-entered from published Pixel factory-image build data (Android 14, UQ1A.240205.004, patch 2024-02-05).",
+            "sourceUrl": "https://developers.google.com/android/images",
+            "verified": false,
+            "note": "Shares shiba's build; differs only in memory and display."
+        },
+        {
+            "profile": {
+                "key": "google_oriole",
+                "name": "Google Pixel 6",
+                "brand": "google",
+                "manufacturer": "Google",
+                "model": "GB7N6",
+                "product": "oriole",
+                "device": "oriole",
+                "androidRelease": "12",
+                "sdkInt": 31,
+                "securityPatch": "2021-10-05",
+                "buildId": "SP1A.210812.015",
+                "buildIncremental": "7679548",
+                "buildType": "user",
+                "buildTags": "release-keys",
+                "buildHost": "abfarm-release-rbe-64-0013",
+                "buildUser": "android-build",
+                "buildTimeMs": 1633463659000,
+                "displayId": "SP1A.210812.015",
+                "bootloader": "slider-1.0-7718710",
+                "socKey": "gs101",
+                "display": {
+                    "widthPx": 1080,
+                    "heightPx": 2400,
+                    "densityDpi": 411,
+                    "refreshRates": [
+                        60.0,
+                        90.0
+                    ]
+                },
+                "ramBytes": 8589934592
+            },
+            "source": "Hand-entered from published Pixel factory-image build data (Android 12, SP1A.210812.015, patch 2021-10-05).",
+            "sourceUrl": "https://developers.google.com/android/images",
+            "verified": false,
+            "note": "Pixel 6 launch build."
+        },
+        {
+            "profile": {
+                "key": "google_panther",
+                "name": "Google Pixel 7",
+                "brand": "google",
+                "manufacturer": "Google",
+                "model": "GVU6C",
+                "product": "panther",
+                "device": "panther",
+                "androidRelease": "13",
+                "sdkInt": 33,
+                "securityPatch": "2022-12-05",
+                "buildId": "TQ1A.221205.011",
+                "buildIncremental": "9243689",
+                "buildType": "user",
+                "buildTags": "release-keys",
+                "buildHost": "abfarm-release-rbe-64-0006",
+                "buildUser": "android-build",
+                "buildTimeMs": 1669761819000,
+                "displayId": "TQ1A.221205.011",
+                "bootloader": "panther-1.1-9032953",
+                "socKey": "gs201",
+                "display": {
+                    "widthPx": 1080,
+                    "heightPx": 2400,
+                    "densityDpi": 416,
+                    "refreshRates": [
+                        60.0,
+                        90.0
+                    ]
+                },
+                "ramBytes": 8589934592
+            },
+            "source": "Hand-entered from published Pixel factory-image build data (Android 13, TQ1A.221205.011, patch 2022-12-05).",
+            "sourceUrl": "https://developers.google.com/android/images",
+            "verified": false,
+            "note": ""
+        },
+        {
+            "profile": {
+                "key": "google_redfin",
+                "name": "Google Pixel 5",
+                "brand": "google",
+                "manufacturer": "Google",
+                "model": "GD1YQ",
+                "product": "redfin",
+                "device": "redfin",
+                "androidRelease": "11",
+                "sdkInt": 30,
+                "securityPatch": "2021-10-05",
+                "buildId": "RQ3A.211001.001",
+                "buildIncremental": "7641976",
+                "buildType": "user",
+                "buildTags": "release-keys",
+                "buildHost": "abfarm-release-rbe-64-0007",
+                "buildUser": "android-build",
+                "buildTimeMs": 1633115157000,
+                "displayId": "RQ3A.211001.001",
+                "bootloader": "r3-0.4-7379435",
+                "socKey": "sm7250",
+                "display": {
+                    "widthPx": 1080,
+                    "heightPx": 2340,
+                    "densityDpi": 432,
+                    "refreshRates": [
+                        60.0,
+                        90.0
+                    ]
+                },
+                "ramBytes": 8589934592
+            },
+            "source": "Hand-entered from published Pixel factory-image build data (Android 11, RQ3A.211001.001, patch 2021-10-05). Not yet re-read from Google's own tables by the generator.",
+            "sourceUrl": "https://developers.google.com/android/images",
+            "verified": false,
+            "note": "Aug 2022 Pixel 5 build; the last before Android 13."
+        },
+        {
+            "profile": {
+                "key": "google_shiba",
+                "name": "Google Pixel 8",
+                "brand": "google",
+                "manufacturer": "Google",
+                "model": "GKWS6",
+                "product": "shiba",
+                "device": "shiba",
+                "androidRelease": "14",
+                "sdkInt": 34,
+                "securityPatch": "2024-02-05",
+                "buildId": "UQ1A.240205.004",
+                "buildIncremental": "11228896",
+                "buildType": "user",
+                "buildTags": "release-keys",
+                "buildHost": "abfarm-release-rbe-64-0008",
+                "buildUser": "android-build",
+                "buildTimeMs": 0,
+                "displayId": "UQ1A.240205.004",
+                "bootloader": "shiba-14.3-11261976",
+                "socKey": "gs301",
+                "display": {
+                    "widthPx": 1080,
+                    "heightPx": 2400,
+                    "densityDpi": 428,
+                    "refreshRates": [
+                        60.0,
+                        120.0
+                    ]
+                },
+                "ramBytes": 8589934592
+            },
+            "source": "Hand-entered from published Pixel factory-image build data (Android 14, UQ1A.240205.004, patch 2024-02-05).",
+            "sourceUrl": "https://developers.google.com/android/images",
+            "verified": false,
+            "note": ""
+        },
+        {
+            "profile": {
+                "key": "xiaomi_alioth",
+                "name": "Redmi K40 / POCO F3",
+                "brand": "Redmi",
+                "manufacturer": "Xiaomi",
+                "model": "M2012K11AC",
+                "product": "alioth",
+                "device": "alioth",
+                "androidRelease": "11",
+                "sdkInt": 30,
+                "securityPatch": "2021-04-01",
+                "buildId": "RKQ1.200826.002",
+                "buildIncremental": "V12.5.6.0.RKHCNXM",
+                "buildType": "user",
+                "buildTags": "release-keys",
+                "buildHost": "c3-miui-ota-bd041.bj",
+                "buildUser": "builder",
+                "buildTimeMs": 0,
+                "displayId": "RKQ1.200826.002",
+                "bootloader": "unknown",
+                "socKey": "sm8250_ac",
+                "display": {
+                    "widthPx": 1080,
+                    "heightPx": 2400,
+                    "densityDpi": 395,
+                    "refreshRates": [
+                        60.0,
+                        120.0
+                    ]
+                },
+                "ramBytes": 6442450944
+            },
+            "source": "Hand-entered from MIUI release notes and the device's published ROM (MIUI 12.5.6.0.RKHCNXM on Android 11). Not verified against the build itself.",
+            "sourceUrl": "https://xiaomifirmwareupdater.com/",
+            "verified": false,
+            "note": "Sold as Redmi K40 in China / POCO F3 elsewhere; 6 GB tier."
+        },
+        {
+            "profile": {
+                "key": "xiaomi_cupid",
+                "name": "Xiaomi 12",
+                "brand": "Xiaomi",
+                "manufacturer": "Xiaomi",
+                "model": "2201123C",
+                "product": "cupid",
+                "device": "cupid",
+                "androidRelease": "12",
+                "sdkInt": 31,
+                "securityPatch": "2022-01-01",
+                "buildId": "SKQ1.211006.001",
+                "buildIncremental": "V13.0.5.0.SLCCNXM",
+                "buildType": "user",
+                "buildTags": "release-keys",
+                "buildHost": "c3-miui-ota-bd052.bj",
+                "buildUser": "builder",
+                "buildTimeMs": 0,
+                "displayId": "SKQ1.211006.001",
+                "bootloader": "unknown",
+                "socKey": "sm8450",
+                "display": {
+                    "widthPx": 1080,
+                    "heightPx": 2400,
+                    "densityDpi": 419,
+                    "refreshRates": [
+                        60.0,
+                        120.0
+                    ]
+                },
+                "ramBytes": 8589934592
+            },
+            "source": "Hand-entered from MIUI release notes and the device's published ROM (MIUI 13.0.5.0.SLCCNXM on Android 12). Not verified against the build itself.",
+            "sourceUrl": "https://xiaomifirmwareupdater.com/",
+            "verified": false,
+            "note": ""
+        },
+        {
+            "profile": {
+                "key": "xiaomi_fuxi",
+                "name": "Xiaomi 13",
+                "brand": "Xiaomi",
+                "manufacturer": "Xiaomi",
+                "model": "2211133C",
+                "product": "fuxi",
+                "device": "fuxi",
+                "androidRelease": "13",
+                "sdkInt": 33,
+                "securityPatch": "2022-12-01",
+                "buildId": "TKQ1.220829.002",
+                "buildIncremental": "V14.0.2.0.TMCCNXM",
+                "buildType": "user",
+                "buildTags": "release-keys",
+                "buildHost": "c3-miui-ota-bd060.bj",
+                "buildUser": "builder",
+                "buildTimeMs": 1670256000000,
+                "displayId": "TKQ1.220829.002",
+                "bootloader": "unknown",
+                "socKey": "sm8550",
+                "display": {
+                    "widthPx": 1080,
+                    "heightPx": 2400,
+                    "densityDpi": 414,
+                    "refreshRates": [
+                        60.0,
+                        120.0
+                    ]
+                },
+                "ramBytes": 8589934592
+            },
+            "source": "Hand-entered from MIUI release notes and the device's published ROM (MIUI 14.0.2.0.TMCCNXM on Android 13). Not verified against the build itself.",
+            "sourceUrl": "https://xiaomifirmwareupdater.com/",
+            "verified": false,
+            "note": ""
+        },
+        {
+            "profile": {
+                "key": "xiaomi_houji",
+                "name": "Xiaomi 14",
+                "brand": "Xiaomi",
+                "manufacturer": "Xiaomi",
+                "model": "23127PN0CC",
+                "product": "houji",
+                "device": "houji",
+                "androidRelease": "14",
+                "sdkInt": 34,
+                "securityPatch": "2023-12-01",
+                "buildId": "UKQ1.230804.001",
+                "buildIncremental": "V1.0.6.0.UNCCNXM",
+                "buildType": "user",
+                "buildTags": "release-keys",
+                "buildHost": "c3-miui-ota-bd068.bj",
+                "buildUser": "builder",
+                "buildTimeMs": 0,
+                "displayId": "UKQ1.230804.001",
+                "bootloader": "unknown",
+                "socKey": "sm8650",
+                "display": {
+                    "widthPx": 1200,
+                    "heightPx": 2670,
+                    "densityDpi": 460,
+                    "refreshRates": [
+                        60.0,
+                        120.0
+                    ]
+                },
+                "ramBytes": 12884901888
+            },
+            "source": "Hand-entered from HyperOS release notes and the device's published ROM (HyperOS 1.0.6.0.UNCCNXM on Android 14). Not verified against the build itself.",
+            "sourceUrl": "https://xiaomifirmwareupdater.com/",
+            "verified": false,
+            "note": "12 GB tier."
+        },
+        {
+            "profile": {
+                "key": "xiaomi_rubens",
+                "name": "Redmi K50",
+                "brand": "Redmi",
+                "manufacturer": "Xiaomi",
+                "model": "22041211AC",
+                "product": "rubens",
+                "device": "rubens",
+                "androidRelease": "12",
+                "sdkInt": 31,
+                "securityPatch": "2022-03-01",
+                "buildId": "SP1A.210812.016",
+                "buildIncremental": "V13.0.7.0.SLNCNXM",
+                "buildType": "user",
+                "buildTags": "release-keys",
+                "buildHost": "c3-miui-ota-bd055.bj",
+                "buildUser": "builder",
+                "buildTimeMs": 0,
+                "displayId": "SP1A.210812.016",
+                "bootloader": "unknown",
+                "socKey": "mt6895",
+                "display": {
+                    "widthPx": 1440,
+                    "heightPx": 3200,
+                    "densityDpi": 526,
+                    "refreshRates": [
+                        60.0,
+                        120.0
+                    ]
+                },
+                "ramBytes": 8589934592
+            },
+            "source": "Hand-entered from MIUI release notes and the device's published ROM (MIUI 13.0.7.0.SLNCNXM on Android 12). Not verified against the build itself.",
+            "sourceUrl": "https://xiaomifirmwareupdater.com/",
+            "verified": false,
+            "note": ""
+        },
+        {
+            "profile": {
+                "key": "xiaomi_umi",
+                "name": "Xiaomi Mi 10",
+                "brand": "Xiaomi",
+                "manufacturer": "Xiaomi",
+                "model": "M2001J2C",
+                "product": "umi",
+                "device": "umi",
+                "androidRelease": "11",
+                "sdkInt": 30,
+                "securityPatch": "2021-08-01",
+                "buildId": "RKQ1.200826.002",
+                "buildIncremental": "V12.5.8.0.RJBCNXM",
+                "buildType": "user",
+                "buildTags": "release-keys",
+                "buildHost": "c3-miui-ota-bd046.bj",
+                "buildUser": "builder",
+                "buildTimeMs": 1628085600000,
+                "displayId": "RKQ1.200826.002",
+                "bootloader": "unknown",
+                "socKey": "sm8250",
+                "display": {
+                    "widthPx": 1080,
+                    "heightPx": 2340,
+                    "densityDpi": 386,
+                    "refreshRates": [
+                        60.0,
+                        90.0
+                    ]
+                },
+                "ramBytes": 8589934592
+            },
+            "source": "Hand-entered from MIUI release notes and the device's published ROM (MIUI 12.5.8.0.RJBCNXM on Android 11). Not verified against the build itself.",
+            "sourceUrl": "https://xiaomifirmwareupdater.com/",
+            "verified": false,
+            "note": "Build.ID is the AOSP base id; the MIUI version is the incremental, which is how Xiaomi devices actually report."
+        },
+        {
+            "profile": {
+                "key": "xiaomi_venus",
+                "name": "Xiaomi Mi 11",
+                "brand": "Xiaomi",
+                "manufacturer": "Xiaomi",
+                "model": "M2011K2C",
+                "product": "venus",
+                "device": "venus",
+                "androidRelease": "12",
+                "sdkInt": 31,
+                "securityPatch": "2022-01-01",
+                "buildId": "SKQ1.211006.001",
+                "buildIncremental": "V13.0.4.0.SKBCNXM",
+                "buildType": "user",
+                "buildTags": "release-keys",
+                "buildHost": "c3-miui-ota-bd049.bj",
+                "buildUser": "builder",
+                "buildTimeMs": 1640995200000,
+                "displayId": "SKQ1.211006.001",
+                "bootloader": "unknown",
+                "socKey": "sm8350",
+                "display": {
+                    "widthPx": 1440,
+                    "heightPx": 3200,
+                    "densityDpi": 515,
+                    "refreshRates": [
+                        60.0,
+                        120.0
+                    ]
+                },
+                "ramBytes": 8589934592
+            },
+            "source": "Hand-entered from MIUI release notes and the device's published ROM (MIUI 13.0.4.0.SKBCNXM on Android 12). Not verified against the build itself.",
+            "sourceUrl": "https://xiaomifirmwareupdater.com/",
+            "verified": false,
+            "note": ""
+        },
+        {
+            "profile": {
+                "key": "xiaomi_xaga",
+                "name": "Redmi Note 11T Pro",
+                "brand": "Redmi",
+                "manufacturer": "Xiaomi",
+                "model": "22041216C",
+                "product": "xaga",
+                "device": "xaga",
+                "androidRelease": "14",
+                "sdkInt": 34,
+                "securityPatch": "",
+                "buildId": "UP1A.231005.007",
+                "buildIncremental": "OS2.0.12.0.ULOCNXM",
+                "buildType": "user",
+                "buildTags": "release-keys",
+                "buildHost": "pangu-build-component-system-820178-fhx22-nmf8r-h6lrq",
+                "buildUser": "builder",
+                "buildTimeMs": 0,
+                "displayId": "UP1A.231005.007",
+                "bootloader": "unknown",
+                "socKey": "mt6895",
+                "display": {
+                    "widthPx": 1080,
+                    "heightPx": 2460,
+                    "densityDpi": 407,
+                    "refreshRates": [
+                        60.0,
+                        144.0
+                    ]
+                },
+                "ramBytes": 12884901888
+            },
+            "source": "Captured on the author's own handset: Redmi Note 11T Pro (xaga), Android 14 (HyperOS), values read from Build.* on the device.",
+            "sourceUrl": "",
+            "verified": true,
+            "note": "The only entry in the original catalog with a recorded origin. securityPatch is empty because the capture did not record it -- a gap in the capture path, not in the device."
+        }
+    ],
+    "policy": {
+        "requiredRamGiB": [
+            6,
+            8,
+            12,
+            16
+        ],
+        "waivedRamGiB": {
+            "16": "No verified 16 GB entry exists. Pixel 9 Pro and 9 Pro XL ship 16 GB, and the generator is meant to take them from Google's own build tables; until that lands, a 16 GB handset -- and one of the two test devices here -- has nothing coherent to wear."
+        },
+        "outOfScopeRamGiB": {
+            "4": "Low-end handsets do ship 4 GB, but none received a modern Android release in volume, and a profile is only usable on releases its handset actually received. Revisit together with per-release build entries.",
+            "24": "24 GB handsets are rare enough that claiming to be one is itself distinctive, which is the opposite of the point. Revisit if that changes."
+        },
+        "requiredAbis": [
+            "arm64-v8a"
+        ]
+    }
+}
