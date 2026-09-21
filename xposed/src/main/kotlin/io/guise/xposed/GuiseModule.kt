@@ -4,6 +4,8 @@ import android.os.Build
 import android.util.Log
 import io.guise.core.config.ConfigCodec
 import io.guise.core.config.ConfigResolver
+import io.guise.core.profile.CatalogMerge
+import io.guise.core.profile.CatalogSchema
 import io.guise.core.profile.DeviceCatalog
 import io.guise.core.profile.EffectiveProfile
 import io.guise.core.profile.RuntimeVersion
@@ -61,20 +63,60 @@ class GuiseModule : XposedModule() {
     private val profileStores = ConcurrentHashMap<String, ProfileStore>()
 
     /**
-     * The bundled catalog, read straight out of the module APK.
+     * The device catalog the hook will use, assembled from the same three sources the app's
+     * picker shows.
      *
-     * The hooked process belongs to some other app, so it cannot use that app's
-     * AssetManager. `getModuleApplicationInfo().sourceDir` is the module's own APK path,
-     * and APKs are world-readable, so the static data can simply be unzipped. This keeps
-     * the catalog out of the remote-preferences channel, which is meant for small values.
+     * The bundled copy is read straight out of the module APK: the hooked process belongs to some
+     * other app, so it cannot use that app's `AssetManager`, but `getModuleApplicationInfo()
+     * .sourceDir` is the module's own path and APKs are world-readable. That keeps 74 KB of
+     * static data out of the remote-preferences channel, which is meant for small values.
+     *
+     * On top of it sit two optional remote sources, and the merge is deliberately the *same*
+     * function the app calls ([CatalogMerge]) rather than a second implementation. If the two
+     * diverged, the picker would offer a profile this process has never heard of -- and the user
+     * would have no way to tell that from "the module is broken".
+     *
+     * Every failure here falls back toward the bundled catalog, in this order:
+     * downloaded (hash-checked by the app before it was written) -> bundled -> empty. A missing
+     * or unreadable remote file is normal: it means nothing has been downloaded, not that
+     * anything is wrong.
      */
     private val catalog: DeviceCatalog by lazy {
+        val bundled = readBundledCatalog()
+        CatalogMerge.merge(
+            bundled = bundled,
+            downloaded = readRemoteCatalog(Transport.REMOTE_FILE_DOWNLOADED_CATALOG),
+            overlay = readRemoteCatalog(Transport.REMOTE_FILE_USER_CATALOG),
+        ).also { merged ->
+            val meta = catalogMeta()
+            log(
+                Log.INFO,
+                HookContext.TAG,
+                "catalog: ${merged.devices.size} profiles, ${merged.socs.size} SoCs " +
+                    "(" + (if (meta != null) {
+                        "downloaded ${meta.shortHash}, ${meta.profiles} profiles, " +
+                            "schema ${meta.schemaVersion}"
+                    } else {
+                        "bundled"
+                    }) + ")",
+            )
+        }
+    }
+
+    /** The descriptor the app wrote beside the downloaded catalog, if any. */
+    private fun catalogMeta(): io.guise.core.profile.CatalogMeta? = runCatching {
+        ConfigCodec.decodeCatalogMeta(
+            getRemotePreferences(Transport.PREFS_GROUP).getString(Transport.KEY_CATALOG_META, null),
+        )
+    }.getOrNull()
+
+    private fun readBundledCatalog(): DeviceCatalog {
         val apkPath = runCatching { getModuleApplicationInfo().sourceDir }.getOrNull()
         if (apkPath == null) {
             log(Log.ERROR, HookContext.TAG, "catalog: module sourceDir unavailable")
-            return@lazy DeviceCatalog()
+            return DeviceCatalog()
         }
-        runCatching {
+        return runCatching {
             ZipFile(apkPath).use { zip ->
                 val entry = zip.getEntry("assets/${Transport.ASSET_CATALOG}")
                     ?: return@use DeviceCatalog()
@@ -86,6 +128,39 @@ class GuiseModule : XposedModule() {
             log(Log.ERROR, HookContext.TAG, "catalog: failed to read assets/${Transport.ASSET_CATALOG}", it)
         }.getOrElse { DeviceCatalog() }
     }
+
+    /**
+     * Reads a catalog from the module's remote files.
+     *
+     * The descriptor is consulted first and only as a gate on the *format*, not as a hash check:
+     * the hash was verified by the app against the published name before the bytes were written,
+     * and re-hashing 74 KB inside every hooked process on every launch would cost more than it
+     * could catch. What this does catch is a descriptor that disagrees with the file, which is
+     * what a half-finished update looks like.
+     */
+    private fun readRemoteCatalog(name: String): DeviceCatalog? = runCatching {
+        val raw = openRemoteFile(name).let { pfd ->
+            android.os.ParcelFileDescriptor.AutoCloseInputStream(pfd).use { it.readBytes() }
+        }
+        if (raw.isEmpty()) return@runCatching null
+        val parsed = ConfigCodec.decodeCatalog(raw.toString(Charsets.UTF_8))
+        if (name == Transport.REMOTE_FILE_DOWNLOADED_CATALOG) {
+            val meta = catalogMeta()
+            if (meta != null && !CatalogSchema.isSupported(meta.schemaVersion)) {
+                log(
+                    Log.WARN,
+                    HookContext.TAG,
+                    "catalog: downloaded catalog declares schema ${meta.schemaVersion}, " +
+                        "which this build does not understand; ignoring it",
+                )
+                return@runCatching null
+            }
+        }
+        parsed.takeIf { it.devices.isNotEmpty() }
+    }.onFailure {
+        // Expected whenever nothing has been downloaded or captured yet.
+        log(Log.INFO, HookContext.TAG, "catalog: no remote catalog at $name (${it.javaClass.simpleName})")
+    }.getOrNull()
 
     override fun onModuleLoaded(param: ModuleLoadedParam) {
         val info = runCatching {

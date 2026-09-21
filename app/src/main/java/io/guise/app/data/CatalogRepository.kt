@@ -2,6 +2,7 @@ package io.guise.app.data
 
 import android.content.Context
 import io.guise.core.config.ConfigCodec
+import io.guise.core.profile.CatalogMerge
 import io.guise.core.profile.DeviceCatalog
 import io.guise.core.profile.DeviceProfile
 import io.guise.core.transport.Transport
@@ -9,12 +10,16 @@ import io.guise.core.transport.Transport
 /**
  * The device catalog, as seen by the management app.
  *
- * Two sources are merged: the catalog bundled in the APK's assets (the same file the hook
- * reads out of the module APK, so the UI and the hook can never disagree about what a
- * profile means), plus an optional user overlay delivered over remote files.
+ * Three sources, combined by [CatalogMerge] so that the UI and the hook can never disagree about
+ * what a profile means:
  *
- * User entries win on key collision, which makes the overlay a way to correct a bundled
- * entry without a new release.
+ *  - the catalog bundled in the APK's assets;
+ *  - an optional **downloaded** catalog, which replaces the bundled one when present and valid;
+ *  - an optional **user overlay** of captured devices, which always wins on collision.
+ *
+ * The merge lives in `:core` rather than here because the hooked process performs the same one,
+ * on the same inputs, from the same remote files. Two implementations would drift, and the
+ * symptom of drift is a picker that offers a profile the hook has never heard of.
  */
 class CatalogRepository(private val context: Context, private val configRepo: ConfigRepository) {
 
@@ -28,11 +33,10 @@ class CatalogRepository(private val context: Context, private val configRepo: Co
             }
         }.getOrElse { DeviceCatalog() }
 
-        val overlay = configRepo.catalogOverlay() ?: DeviceCatalog()
-        val merged = DeviceCatalog(
-            version = maxOf(bundled.version, overlay.version),
-            socs = bundled.socs + overlay.socs,
-            devices = bundled.devices + overlay.devices,
+        val merged = CatalogMerge.merge(
+            bundled = bundled,
+            downloaded = configRepo.downloadedCatalog(),
+            overlay = configRepo.catalogOverlay(),
         )
         cached = merged
         return merged

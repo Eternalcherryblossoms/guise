@@ -25,4 +25,23 @@ object Transport {
 
     /** Remote file holding a user-defined catalog overlay. Optional. */
     const val REMOTE_FILE_USER_CATALOG = "catalog.user.json"
+
+    /**
+     * Remote file holding the *downloaded* catalog. Optional.
+     *
+     * A file rather than a preference because a catalog is bulk data and remote preferences are
+     * the small key/value channel; a file rather than an APK asset because the point of the whole
+     * exercise is to refresh the catalog without shipping a new build. `XposedInterface` exposes
+     * `openRemoteFile`, so the hooked process reads it with no transport of our own.
+     */
+    const val REMOTE_FILE_DOWNLOADED_CATALOG = "catalog.remote.json"
+
+    /**
+     * Remote preference holding the serialized [io.guise.core.profile.CatalogMeta] describing
+     * [REMOTE_FILE_DOWNLOADED_CATALOG].
+     *
+     * Kept beside the file so the UI can report the source and hash without re-reading and
+     * re-hashing a 74 KB file on every screen.
+     */
+    const val KEY_CATALOG_META = "catalogMeta"
 }

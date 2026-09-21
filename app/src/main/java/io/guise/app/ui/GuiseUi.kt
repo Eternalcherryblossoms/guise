@@ -781,6 +781,8 @@ private fun AboutScreen(vm: GuiseViewModel) {
 
         item { UpdateCard(vm, open) }
 
+        item { CatalogCard(vm) }
+
         item {
             NoteCard(
                 title = "这个项目是怎么造出来的",
@@ -834,6 +836,74 @@ private fun AboutScreen(vm: GuiseViewModel) {
         }
 
         item { Spacer(Modifier.height(24.dp)) }
+    }
+}
+
+/**
+ * The device catalog's provenance, and the one action that can change it.
+ *
+ * Shown because the catalog decides what identity the module presents, so "where did this data
+ * come from" deserves an answer the user can read without opening a file. When an update is
+ * available this is also the only way to get it: the app's own update check and the catalog
+ * update are separate on purpose, since security patch levels go stale on a monthly clock while
+ * APK releases do not.
+ */
+@Composable
+private fun CatalogCard(vm: GuiseViewModel) {
+    val meta = vm.catalogMeta()
+    val working = vm.catalogSyncState == CatalogSyncState.WORKING
+
+    Card(Modifier.fillMaxWidth()) {
+        Column(Modifier.padding(16.dp)) {
+            Text("机型库", style = MaterialTheme.typography.labelMedium)
+            Spacer(Modifier.height(4.dp))
+            Text(
+                "${vm.catalogProfileCount()} 个档案 · ${vm.catalogSocCount()} 个 SoC · ${vm.catalogSourceLabel()}",
+                style = MaterialTheme.typography.titleSmall,
+                fontWeight = FontWeight.SemiBold,
+            )
+            Spacer(Modifier.height(4.dp))
+            Text(
+                if (meta != null) {
+                    "来源：${meta.sourceUrl.substringAfterLast('/')}\n" +
+                        "SHA-256：${meta.shortHash}…\n" +
+                        "获取于：${meta.fetchedAt.take(19).replace('T', ' ')}"
+                } else {
+                    "当前使用 APK 内置机型库。检查更新只会下载一个 JSON 文件，" +
+                        "写入模块自己的目录；不动 APK，也不需要重装。"
+                },
+                style = MaterialTheme.typography.labelSmall,
+                fontFamily = FontFamily.Monospace,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+            Spacer(Modifier.height(8.dp))
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                TextButton(onClick = { vm.updateCatalog() }, enabled = !working) {
+                    Text(if (working) "正在检查…" else "检查机型库更新")
+                }
+                if (meta != null) {
+                    TextButton(onClick = { vm.revertCatalog() }, enabled = !working) {
+                        Text("恢复内置")
+                    }
+                }
+            }
+            vm.catalogMessage?.let {
+                Spacer(Modifier.height(4.dp))
+                Text(
+                    it,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+            Spacer(Modifier.height(4.dp))
+            Text(
+                "校验收到的文件：文件名里带着完整的 SHA-256，内容必须与它一致；" +
+                    "格式版本必须被本版本理解；整份机型库必须通过同一套一致性校验器。" +
+                    "任何一条不过，就直接拒绝，继续用内置那份。",
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.outline,
+            )
+        }
     }
 }
 

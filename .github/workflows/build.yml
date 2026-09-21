@@ -61,6 +61,18 @@ jobs:
       - name: Assemble
         run: ./gradlew :xposed:assembleDebug :app:assembleDebug :probe:assembleDebug --stacktrace
 
+      # The device catalog is published as its own release asset so the module can refresh it
+      # without an APK release. The full SHA-256 goes *in the file name*: the client then needs no
+      # separate manifest to trust, and cannot mistake a truncated download for a catalog. The
+      # name is produced by the same convention the client parses (CatalogReleaseParser), so the
+      # two cannot disagree about the format.
+      - name: Stage the device catalog asset
+        run: |
+          set -euo pipefail
+          sha="$(sha256sum xposed/src/main/assets/catalog.json | cut -d' ' -f1)"
+          cp xposed/src/main/assets/catalog.json "catalog-${sha}.json"
+          echo "catalog asset: catalog-${sha}.json ($(stat -c%s "catalog-${sha}.json") bytes)"
+
       - name: Upload APKs
         uses: actions/upload-artifact@v4
         with:
@@ -68,6 +80,13 @@ jobs:
           path: |
             app/build/outputs/apk/debug/*.apk
             probe/build/outputs/apk/debug/*.apk
+          if-no-files-found: error
+
+      - name: Upload catalog
+        uses: actions/upload-artifact@v4
+        with:
+          name: catalog
+          path: catalog-*.json
           if-no-files-found: error
 
   # Publishing is driven by a tag, not by every push to main: an update check that offered a
@@ -86,6 +105,11 @@ jobs:
           name: apks
           path: apks
 
+      - uses: actions/download-artifact@v4
+        with:
+          name: catalog
+          path: catalog
+
       - name: Publish release
         env:
           GH_TOKEN: ${{ github.token }}
@@ -98,9 +122,13 @@ jobs:
           if [ "${#apks[@]}" -eq 0 ]; then
             echo "no APK found under apks/"; find apks -type f | head -20; exit 1
           fi
-          printf '%s\n' "${apks[@]}"
+          mapfile -t catalogs < <(find catalog -type f -name 'catalog-*.json' | sort)
+          if [ "${#catalogs[@]}" -eq 0 ]; then
+            echo "no catalog asset found under catalog/"; find catalog -type f | head -20; exit 1
+          fi
+          printf '%s\n' "${apks[@]}" "${catalogs[@]}"
           gh release create "${GITHUB_REF_NAME}" \
             --repo "${GITHUB_REPOSITORY}" \
             --title "${GITHUB_REF_NAME}" \
             --generate-notes \
-            "${apks[@]}"
+            "${apks[@]}" "${catalogs[@]}"

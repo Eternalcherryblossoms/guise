@@ -106,6 +106,24 @@ object ConfigCodec {
         return runCatching { json.decodeFromString(DeviceCatalog.serializer(), text) }
             .getOrElse { DeviceCatalog() }
     }
+
+    /**
+     * The downloaded-catalog descriptor.
+     *
+     * Same tolerant decoding as everything else here: this object is written by the module app
+     * and read by both the app and the hooked process, and a version skew must not be able to
+     * crash either. A descriptor that cannot be read is treated as absent, which falls back to
+     * the bundled catalog -- the safe direction.
+     */
+    fun encodeCatalogMeta(meta: io.guise.core.profile.CatalogMeta): String =
+        json.encodeToString(io.guise.core.profile.CatalogMeta.serializer(), meta)
+
+    fun decodeCatalogMeta(text: String?): io.guise.core.profile.CatalogMeta? {
+        if (text.isNullOrBlank()) return null
+        return runCatching {
+            json.decodeFromString(io.guise.core.profile.CatalogMeta.serializer(), text)
+        }.getOrNull()
+    }
 }
 
 /**

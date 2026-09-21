@@ -9,6 +9,7 @@ import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import io.guise.app.data.AppScanner
 import io.guise.app.data.CatalogRepository
+import io.guise.app.data.CatalogUpdater
 import io.guise.app.data.ConfigRepository
 import io.guise.app.data.DeviceCapture
 import io.guise.app.data.InstalledApp
@@ -17,6 +18,7 @@ import io.guise.app.data.UpdateInfo
 import io.guise.app.service.XposedBridgeClient
 import io.guise.core.config.ModuleConfig
 import io.guise.core.config.TargetConfig
+import io.guise.core.profile.CatalogMeta
 import io.guise.core.profile.Compatibility
 import io.guise.core.profile.DeviceCatalog
 import io.guise.core.profile.DeviceProfile
@@ -50,12 +52,16 @@ sealed interface Screen {
 /** Whether the update check has run, so the About screen can say "not checked" honestly. */
 enum class UpdateState { IDLE, CHECKING, DONE }
 
+/** Whether a device-catalog fetch is in flight. */
+enum class CatalogSyncState { IDLE, WORKING }
+
 class GuiseViewModel(app: Application) : AndroidViewModel(app) {
 
     private val configRepo = ConfigRepository(app)
     private val catalogRepo = CatalogRepository(app, configRepo)
     private val scanner = AppScanner(app)
     private val updateChecker = UpdateChecker(app)
+    private val catalogUpdater = CatalogUpdater(app)
 
     var screen by mutableStateOf<Screen>(Screen.Home)
     var config by mutableStateOf(ModuleConfig.EMPTY)
@@ -63,6 +69,8 @@ class GuiseViewModel(app: Application) : AndroidViewModel(app) {
     var frameworkConnected by mutableStateOf(false)
     var updateInfo by mutableStateOf<UpdateInfo?>(null)
     var updateState by mutableStateOf(UpdateState.IDLE)
+    var catalogSyncState by mutableStateOf(CatalogSyncState.IDLE)
+    var catalogMessage by mutableStateOf<String?>(null)
     var apps by mutableStateOf<List<InstalledApp>>(emptyList())
     var search by mutableStateOf("")
     var message by mutableStateOf<String?>(null)
@@ -120,6 +128,66 @@ class GuiseViewModel(app: Application) : AndroidViewModel(app) {
         getApplication<Application>().packageManager
             .getPackageInfo(getApplication<Application>().packageName, 0).versionName.orEmpty()
     }.getOrDefault("")
+
+    // ---- device-catalog updates ---------------------------------------------
+
+    /**
+     * Fetches a newer device catalog from the project's releases.
+     *
+     * Deliberately a separate action from the app update check. The APK update needs the user to
+     * install something; the catalog update is this app writing one file, and conflating them
+     * would mean the catalog only ever refreshed when the app did -- which is the situation the
+     * whole channel exists to avoid, since a security patch level goes stale on a monthly clock.
+     */
+    fun updateCatalog() {
+        if (catalogSyncState == CatalogSyncState.WORKING) return
+        viewModelScope.launch {
+            catalogSyncState = CatalogSyncState.WORKING
+            catalogMessage = null
+            val available = catalogUpdater.findAvailable()
+            if (available == null) {
+                catalogMessage = "已是最新的机型库，或网络不可用。"
+                catalogSyncState = CatalogSyncState.IDLE
+                return@launch
+            }
+            when (val result = catalogUpdater.install(available)) {
+                is CatalogUpdater.Result.Installed -> {
+                    catalogRepo.invalidate()
+                    catalogRevision++
+                    catalogMessage = "机型库已更新到 ${result.meta.profiles} 个档案" +
+                        "（${result.meta.sourceUrl.substringAfterLast('/')}）。" +
+                        "已配置的应用下次启动时生效。"
+                }
+                is CatalogUpdater.Result.Rejected -> {
+                    // Named rather than swallowed: a rejected catalog means the published data
+                    // failed a gate, and saying which gate is how that gets fixed.
+                    catalogMessage = "已拒绝这份机型库：${result.reason}。继续使用内置机型库。"
+                }
+            }
+            catalogSyncState = CatalogSyncState.IDLE
+        }
+    }
+
+    /** Drops the downloaded catalog and returns to the one inside the APK. */
+    fun revertCatalog() {
+        catalogUpdater.uninstall()
+        catalogRepo.invalidate()
+        catalogRevision++
+        catalogMessage = "已恢复到 APK 内置机型库。"
+    }
+
+    fun catalogMeta(): CatalogMeta? = catalogUpdater.installedMeta()
+
+    fun catalogProfileCount(): Int = catalogRepo.catalog().devices.size
+
+    /** The SoC count in the effective catalog, for the same card. */
+    fun catalogSocCount(): Int = catalogRepo.catalog().socs.size
+
+    /** One line describing where the catalog in use came from. */
+    fun catalogSourceLabel(): String = catalogMeta()?.let { meta ->
+        "已更新 · 来自 ${meta.releaseTag.ifBlank { "发布页" }}" +
+            (if (meta.shortHash.isNotBlank()) " · ${meta.shortHash}" else "")
+    } ?: "APK 内置"
 
     // ---- catalog ------------------------------------------------------------
 

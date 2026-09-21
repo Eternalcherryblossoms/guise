@@ -86,6 +86,25 @@ class ConfigRepository(private val context: Context) {
     }
 
     /**
+     * The downloaded catalog, if one has been installed.
+     *
+     * Read through the same remote file the hooked process uses rather than from a local copy, so
+     * the UI is describing what the module will actually load. When the framework is not
+     * connected this returns null and the UI falls back to the bundled catalog -- which is also
+     * what the hook does, so the two stay in step.
+     */
+    fun downloadedCatalog(): io.guise.core.profile.DeviceCatalog? {
+        val svc = XposedBridgeClient.service.value ?: return null
+        return runCatching {
+            val pfd = svc.openRemoteFile(Transport.REMOTE_FILE_DOWNLOADED_CATALOG)
+            android.os.ParcelFileDescriptor.AutoCloseInputStream(pfd).use { stream ->
+                val bytes = stream.readBytes()
+                if (bytes.isEmpty()) null else ConfigCodec.decodeCatalog(bytes.toString(Charsets.UTF_8))
+            }
+        }.getOrNull()
+    }
+
+    /**
      * Persist user-defined catalog entries (currently: captured devices).
      *
      * These travel over remote *files* rather than remote preferences because a catalog is
