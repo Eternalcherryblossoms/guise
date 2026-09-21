@@ -58,6 +58,97 @@ class PropertyMirrorCheck : ProbeCheck {
 }
 
 /**
+ * Compares the property value a **Java** caller gets against the one a **native** caller gets.
+ *
+ * This is the check that catches the failure mode above all others, and it was missing until a
+ * user reported that Flutter apps were unaffected by the module.
+ *
+ * The mechanism: `ro.*` values live in a shared-memory property area that `init` populates at
+ * boot. `android.os.SystemProperties.get` is a Java method that reads it, and it is therefore
+ * hookable. `__system_property_get` -- what the NDK exposes, what `getprop` calls, and what the
+ * Flutter engine, Unity and most fingerprinter SDKs use -- reads the same area directly and is
+ * *not* reachable from a Java-layer hook at all. So a module can be perfectly coherent on every
+ * Java surface and completely absent for a native reader.
+ *
+ * `getprop` in a subprocess is the only way an ordinary app can ask the native question, and it
+ * is why this check exists rather than being folded into the Java-vs-property one: both of that
+ * check's sides go through the same hooked method, so they agree with each other while both
+ * disagree with reality.
+ */
+class NativePropertyCheck : ProbeCheck {
+    override val id = "native-property"
+    override val title = "Java 属性 vs 原生属性（Flutter / NDK 走这条）"
+    override val rationale =
+        "ro.* 存在共享内存的属性区里。Java 的 SystemProperties.get 可被 hook；" +
+            "但 __system_property_get 直接读那块内存，Java 层拦不到——" +
+            "Flutter 引擎、Unity、以及大多数指纹 SDK 走的正是后者。"
+
+    override suspend fun run(context: Context): CheckResult {
+        val java = Facts.prop()
+        val native = Facts.nativeProp()
+
+        if (native.isEmpty()) {
+            return CheckResult(
+                id = id,
+                title = title,
+                verdict = Verdict.UNSUPPORTED,
+                headline = "无法读取原生属性视图（getprop 未返回内容）",
+                findings = listOf(
+                    Finding(
+                        label = "为什么测不出来很重要",
+                        observed = "getprop 无输出",
+                        verdict = Verdict.INFO,
+                        detail = "这一项需要能执行 getprop。读不到就无法判断原生调用方看到了什么——" +
+                            "这是「没测出来」，不是「没问题」。",
+                    ),
+                ),
+            )
+        }
+
+        val shared = java.keys.intersect(native.keys).sorted()
+        val findings = shared.map { key ->
+            val j = java.getValue(key)
+            val n = native.getValue(key)
+            Finding(
+                label = key,
+                observed = j,
+                expected = n,
+                verdict = if (j == n) Verdict.COHERENT else Verdict.INCOHERENT,
+                detail = if (j == n) null else "原生读到的是 $n；Java 读到的是 $j",
+            )
+        }
+
+        val bad = findings.filter { it.verdict == Verdict.INCOHERENT }
+        return CheckResult(
+            id = id,
+            title = title,
+            verdict = if (bad.isEmpty()) Verdict.COHERENT else Verdict.INCOHERENT,
+            headline = if (bad.isEmpty()) {
+                "两端一致（${shared.size} 项）——原生调用方也看到了伪装后的值"
+            } else {
+                "${bad.size}/${shared.size} 项不一致：原生调用方看到的是真值。" +
+                    "任何走 NDK 的应用（Flutter、Unity、带 native 指纹 SDK 的）不受伪装影响"
+            },
+            findings = if (bad.isEmpty()) {
+                findings
+            } else {
+                findings + Finding(
+                    label = "怎么修",
+                    observed = "Java 方法 hook 到不了 __system_property_get",
+                    verdict = Verdict.INFO,
+                    detail = "属性区是 init 开机时填好的共享内存，原生代码直接读它，Java 层无从拦截。" +
+                        "覆盖这条路径需要原生层 hook（Zygisk 内联或 PLT hook libc 的 " +
+                        "__system_property_get / __system_property_read_callback）。\n\n" +
+                        "注意一条看似可行其实无效的路：把伪造的 build.prop 挂载到 /system。" +
+                        "那些文件只在开机时被 init 读一次，运行时的属性值来自内存而非文件，" +
+                        "所以对已经启动的系统挂载假 build.prop 什么也改变不了。",
+                )
+            },
+        )
+    }
+}
+
+/**
  * Checks that the build fingerprint is well-formed and that the Android version it claims
  * agrees with the API level it claims.
  *

@@ -292,6 +292,28 @@ docs/        架构说明与实测发现
 **选了档案但目标应用没变化？**
 确认 LSPosed 里已启用 Guise、且该应用在模块作用域内，然后**强制停止并重开目标应用**。
 
+**某些应用（尤其 Flutter / Unity / 带原生 SDK 的）完全没效果？**
+
+大概率是**原生属性读取**这条路没被覆盖，而这是 Java 层 hook 结构上做不到的事。
+
+`ro.*` 在运行时**不在文件里**：`init` 开机时读一次属性文件，填进一块**共享内存属性区**，之后每个进程只读映射它。两条读取路径：
+
+| 路径 | 谁在用 | LSPosed 能拦吗 |
+|---|---|---|
+| `android.os.SystemProperties.get` | 框架、所有 Java/Kotlin 调用方 | **能**——它是个 Java 方法 |
+| `__system_property_get` | NDK、`getprop`、**Flutter 引擎**、Unity、大多数原生指纹 SDK | **不能**——它是 libc 函数，直接读共享内存 |
+
+所以模块可以在每一个 Java 表面上完全自洽，而对原生调用方完全不存在。
+
+**先测，别猜**：把探针也加进 Guise 的作用域并选一个档案，然后看探针的 **「Java 属性 vs 原生属性」** 这一项。它逐字段告诉你原生调用方看到的是伪装值还是真值——注意这一项和「Java 层 vs 属性层」是两回事，后者的两侧都走同一个可被 hook 的 Java 方法，所以它们会互相一致而同时和现实不一致。
+
+- **两端一致** → 这个应用的问题不在原生路径，在别处（作用域、进程、多进程）；
+- **不一致** → 确认了，需要原生层 hook。
+
+**一个看着可行、其实无效的办法**：把伪造的 `build.prop` 挂载到 `/system`。**它不可能有用**——那些文件只在**开机时被 `init` 读一次**，运行时的值来自内存，不来自文件。对已经启动的系统挂载假文件，什么都不会变。唯一能改原生属性读取的，是在**原生读取函数本身上**打 hook。
+
+这正是为什么需要一个可选的 Zygisk 模块：它要干两件不同的原生层工作——**hook `__system_property_get`**（覆盖 Flutter 这类原生读取），和**挂载命名空间**（覆盖「所有文件访问权限」那类按路径直读）。两者都不属于 LSPosed 层。
+
 **探针报「内核 SoC 描述不一致」？**
 高通设备上已知。`/sys/devices/soc0/machine` 会说出真实芯片（如 `Snapdragon`）。当前版本没有覆盖它——需要 Zygisk 层在进程私有 mount namespace 里伪造该文件。**临时办法：选一个同平台的档案。**
 
@@ -671,6 +693,40 @@ Neither can be spoofed. **From 5.5 the app flags it for you**: the device picker
 profile against this handset's measured memory tier and ABI, marks each row "compatible" or "does
 not fit this device", and shows a running count. Pick one that fits -- and if none does, that is a
 coverage hole in the catalog, not a mistake in your configuration.
+
+**Some apps -- especially Flutter, Unity, or anything with a native SDK -- are unaffected.**
+
+Almost certainly the **native property route** is uncovered, and that is something a Java-layer
+hook structurally cannot cover.
+
+At runtime `ro.*` values are **not in a file**: `init` reads the property files once at boot,
+loads them into a **shared-memory property area**, and every process maps that area read-only.
+Two ways to read it:
+
+| Route | Who uses it | Hookable from LSPosed? |
+|---|---|---|
+| `android.os.SystemProperties.get` | the framework, every Java/Kotlin caller | **yes** -- it is a Java method |
+| `__system_property_get` | the NDK, `getprop`, the **Flutter engine**, Unity, most native fingerprinting SDKs | **no** -- a libc function reading shared memory |
+
+So the module can be perfectly coherent on every Java surface and entirely absent for a native
+reader.
+
+**Measure it rather than guess**: put the probe in Guise's scope with a profile, then look at its
+**"Java property vs native property"** row. It names each field the native caller sees, and it is
+a different check from "Java vs property" -- that one's two sides both pass through the same
+hookable Java method, so they agree with each other while both disagreeing with reality.
+
+- **Both sides agree** -> the app's problem is not this path (check scope, process, multi-process).
+- **They disagree** -> confirmed; a native hook is required.
+
+**An idea that looks right and cannot work**: mount a forged `build.prop` over `/system`.
+Those files are read by `init` **once, at boot**; the runtime value comes from memory, not from the
+file. Mounting a fake file over a running system changes nothing. The only thing that changes a
+native property read is a hook **on the native function itself**.
+
+That is why an optional Zygisk module is needed, and it has two distinct native-layer jobs: **hook
+`__system_property_get`** (Flutter and the like) and **a mount namespace** (the path-based
+"all files access" case). Neither belongs in LSPosed.
 
 **The probe reports visible injection traces.**
 Zygisk/LSPosed `.so` paths are showing up in `/proc/self/maps`. Install a concealment module

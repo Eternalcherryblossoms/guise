@@ -264,6 +264,74 @@ this configuration wear a profile -- and print the list of failures, not the tot
 
 ---
 
+## The hole in the middle of the diagnostic
+
+A user reported that the module did nothing at all for Flutter apps. The mechanism turned out to
+be structural, and worse, **the probe was built in a way that could not see it.**
+
+### Why a Java-layer hook cannot cover every reader
+
+`ro.*` values do not live in a file at runtime. `init` reads the property files once at boot,
+loads them into a **shared-memory property area**, and every process maps that area read-only.
+Two ways to read it:
+
+| Route | Who uses it | Hookable from LSPosed? |
+|---|---|---|
+| `android.os.SystemProperties.get` | the framework, and any Kotlin/Java caller | **yes** -- it is a Java method |
+| `__system_property_get` / `__system_property_read_callback` | the NDK, `getprop`, the Flutter engine, Unity, most native fingerprinting SDKs | **no** -- it is a libc function reading shared memory |
+
+So a module can be perfectly coherent on every Java surface and completely absent for a native
+reader. Nothing about that is a bug in the hooks; it is where the value lives.
+
+**A wrong idea worth writing down**, because it is the obvious one: mount a forged
+`/system/build.prop` so the property reads pick it up. It cannot work. Those files are read by
+`init` **once, at boot**; the runtime value comes from the shared memory that was populated then.
+Mounting a different file over the real one changes nothing for an already-running system. The
+only thing that changes a native property read is a hook on the native reader itself.
+
+### Why the probe could not see it
+
+`Props.get()` tried reflection into `SystemProperties` and **fell back** to `getprop` only if
+reflection failed. With a hook installed, reflection succeeds -- returning the rewritten value --
+so `getprop` was never consulted. And `PropertyMirrorCheck` compares the Java `Build.*` fields
+against the Java property route, so **both of its sides pass through the same hooked method**:
+they agreed with each other, and disagreed with reality, and the check reported COHERENT.
+
+That is the shape of the mistake worth remembering. The diagnostic was not missing a
+measurement; it was *structurally incapable* of the measurement, in a way that produced a
+passing verdict rather than an error.
+
+### The fix
+
+The two routes are now two first-class readings, and `NativePropertyCheck` compares them
+key by key. `getprop` is a world-executable binary that reads the property area directly, so
+running it in a subprocess is how an ordinary app asks the question that matters. Three outcomes,
+kept distinct on purpose:
+
+- **coherent** -- native readers see the spoof too;
+- **incoherent** -- they see the truth, and the check names every field that differs, so "the
+  module only covers Java" becomes a list rather than a suspicion;
+- **unsupported** -- `getprop` produced nothing, which is *not* the same as agreement.
+
+The check also carries the correction above in its own output, since a user who sees it is
+exactly the user who would otherwise reach for the forged-`build.prop` idea.
+
+### What this means for the layering
+
+Two native-layer jobs now exist, and they are different mechanisms that happen to want the same
+delivery vehicle:
+
+1. **Native property hook** -- inline or PLT hook of `__system_property_get` inside the target
+   process, for every reader that is not Java.
+2. **Mount namespace** -- bind-mount a confined view of shared storage, for the file-access
+   problem the provider-level hooks cannot reach.
+
+Neither belongs in LSPosed, and both belong in one optional Zygisk module. The earlier round's
+research already established the shipping shape for the second (a root companion that `setns`es
+into the target's mount namespace); the first is the same kind of in-process native work.
+
+---
+
 ## The one boundary the privacy layer cannot cross
 
 Emptied data sources cover every domain backed by a **content provider** -- contacts, call log,

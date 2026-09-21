@@ -8,6 +8,7 @@ import io.guise.probe.checks.CodecVendorCheck
 import io.guise.probe.checks.Facts
 import io.guise.probe.checks.FingerprintShapeCheck
 import io.guise.probe.checks.InjectionCheck
+import io.guise.probe.checks.NativePropertyCheck
 import io.guise.probe.checks.NativeSoCCheck
 import io.guise.probe.checks.PhysicalCheck
 import io.guise.probe.checks.PropertyMirrorCheck
@@ -49,6 +50,11 @@ class ProbeRunner(private val context: Context) {
         val checks: List<ProbeCheck> = listOf(
             AggregateHashCheck(aggregate),
             PropertyMirrorCheck(),
+            // Runs immediately after the Java-vs-property check, because the two answer
+            // different questions and the second is the one that was being missed: that check's
+            // two sides both go through the same hookable Java method, so they agree with each
+            // other while both disagreeing with what a native caller is told.
+            NativePropertyCheck(),
             FingerprintShapeCheck(),
             NativeSoCCheck(),
             CodecVendorCheck(),

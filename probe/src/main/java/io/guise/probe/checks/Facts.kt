@@ -7,12 +7,25 @@ import io.guise.probe.model.SourceComparison
 import java.io.File
 
 /**
- * Reads `ro.*` properties.
+ * Reads `ro.*` properties, through both routes an app can take.
  *
- * Two routes on purpose. Reflection into `android.os.SystemProperties` is the fast path and
- * usually works, but it is a hidden API and can be refused. `getprop` is a world-executable
- * binary and almost always works. A diagnostic that silently reads nothing because a hidden
- * API was blocked would be worse than useless.
+ * The two routes are not interchangeable, and the difference is the whole point:
+ *
+ *  - **Java** -- reflection into `android.os.SystemProperties`. This is what the framework and
+ *    every Kotlin/Java caller uses, and it is the *only* thing a Java-layer hook such as
+ *    LSPosed's can intercept.
+ *  - **Native** -- `__system_property_get`, which the NDK exposes and which the property area
+ *    backs. That area is a shared-memory region every process maps read-only, populated by
+ *    `init` at boot, and a Java method hook does not touch it. `getprop` is a world-executable
+ *    binary that reads exactly that area, so running it in a subprocess is how an ordinary app
+ *    asks "what do native callers get told?" -- which is the question that decides whether a
+ *    Flutter app, a Unity app, or anything with an NDK fingerprinting SDK sees the spoof.
+ *
+ * These used to be one function that tried reflection and *fell back* to `getprop`. That made
+ * the probe structurally unable to see this failure: while a hook is installed, reflection
+ * succeeds and returns the rewritten value, so `getprop` was never consulted and the two views
+ * were never compared. The fallback is still there for robustness, but the native view is now
+ * a first-class reading of its own.
  */
 object Props {
 
@@ -29,21 +42,37 @@ object Props {
         runCatching { Class.forName("android.os.SystemProperties") }.getOrNull()
     }
 
+    /** Best effort, for callers that do not care which route answered. */
     fun get(name: String): String? = cache.getOrPut(name) {
-        viaReflection(name) ?: viaGetprop(name)
+        viaReflection(name) ?: viaNative(name)
+    }
+
+    /** What a Java caller is told. This is the route a Java-layer hook can intercept. */
+    fun viaJava(name: String): String? = viaReflection(name)
+
+    /**
+     * What a native caller is told.
+     *
+     * Deliberately not cached per key: the whole `getprop` table is read once and reused, so
+     * asking for twenty properties costs one process rather than twenty.
+     */
+    fun viaNative(name: String): String? {
+        bulk?.let { return it[name] }
+        val parsed = readGetpropBounded() ?: emptyMap()
+        bulk = parsed
+        return parsed[name]
+    }
+
+    /** True when the native view could be read at all; distinguishes "equal" from "no answer". */
+    fun nativeViewAvailable(): Boolean {
+        viaNative("ro.build.id")
+        return bulk != null
     }
 
     private fun viaReflection(name: String): String? = runCatching {
         val m = systemProperties?.getMethod("get", String::class.java) ?: return@runCatching null
         (m.invoke(null, name) as? String)?.takeIf { it.isNotEmpty() }
     }.getOrNull()
-
-    private fun viaGetprop(name: String): String? {
-        bulk?.let { return it[name] }
-        val parsed = readGetpropBounded() ?: emptyMap()
-        bulk = parsed
-        return parsed[name]
-    }
 
     /**
      * Runs `getprop` with a hard bound on the whole interaction.
@@ -128,31 +157,43 @@ object Facts {
     }
 
     /** The same facts, read from `SystemProperties` rather than the cached Build fields. */
-    fun prop(): Map<String, String> {
-        val pairs = listOf(
-            "brand" to "ro.product.brand",
-            "manufacturer" to "ro.product.manufacturer",
-            "model" to "ro.product.model",
-            "device" to "ro.product.device",
-            "product" to "ro.product.name",
-            "board" to "ro.product.board",
-            "hardware" to "ro.hardware",
-            "fingerprint" to "ro.build.fingerprint",
-            "bootloader" to "ro.bootloader",
-            "buildId" to "ro.build.id",
-            "display" to "ro.build.display.id",
-            "tags" to "ro.build.tags",
-            "type" to "ro.build.type",
-            "host" to "ro.build.host",
-            "user" to "ro.build.user",
-            "release" to "ro.build.version.release",
-            "incremental" to "ro.build.version.incremental",
-            // Shared key with the Java reading: the framework computes SUPPORTED_ABIS from
-            // this property at class-init, so a rewrite of one without the other shows up.
-            "abis" to "ro.product.cpu.abilist",
-        )
-        return pairs.mapNotNull { (key, prop) -> Props.get(prop)?.let { key to it } }.toMap()
-    }
+    fun prop(): Map<String, String> =
+        PROP_PAIRS.mapNotNull { (key, prop) -> Props.get(prop)?.let { key to it } }.toMap()
+
+    /**
+     * The same keys, read through the **native** property area.
+     *
+     * This is the reading that decides whether a Flutter, Unity or NDK-based app sees the spoof.
+     * Every key here is answered by `__system_property_get` from the shared property area, which
+     * no Java-layer hook can reach -- so if this map disagrees with [prop], the module is
+     * covering the Java surface only and native readers are getting the truth.
+     */
+    fun nativeProp(): Map<String, String> =
+        PROP_PAIRS.mapNotNull { (key, prop) -> Props.viaNative(prop)?.let { key to it } }.toMap()
+
+    /** The property names behind the shared keys, so both routes ask identical questions. */
+    private val PROP_PAIRS = listOf(
+        "brand" to "ro.product.brand",
+        "manufacturer" to "ro.product.manufacturer",
+        "model" to "ro.product.model",
+        "device" to "ro.product.device",
+        "product" to "ro.product.name",
+        "board" to "ro.product.board",
+        "hardware" to "ro.hardware",
+        "fingerprint" to "ro.build.fingerprint",
+        "bootloader" to "ro.bootloader",
+        "buildId" to "ro.build.id",
+        "display" to "ro.build.display.id",
+        "tags" to "ro.build.tags",
+        "type" to "ro.build.type",
+        "host" to "ro.build.host",
+        "user" to "ro.build.user",
+        "release" to "ro.build.version.release",
+        "incremental" to "ro.build.version.incremental",
+        // Shared key with the Java reading: the framework computes SUPPORTED_ABIS from
+        // this property at class-init, so a rewrite of one without the other shows up.
+        "abis" to "ro.product.cpu.abilist",
+    )
 
     /**
      * Facts that do not come from the framework at all.
