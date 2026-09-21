@@ -330,6 +330,32 @@ Neither belongs in LSPosed, and both belong in one optional Zygisk module. The e
 research already established the shipping shape for the second (a root companion that `setns`es
 into the target's mount namespace); the first is the same kind of in-process native work.
 
+### Status: the first of those was built, and not shipped
+
+A Zygisk module implementing job 1 was written and compiled (`zygisk/`, on the local branch
+`zygisk-wip`). It is **not** in any release, and the gap it addresses is still open. Recording
+that here rather than leaving it implied, because the README says the gap exists and a reader
+would otherwise assume an attempt had never been made.
+
+Two things came out of it that are worth keeping even though the module was not:
+
+- **A patch that could not have worked.** The first version asked for
+  `PROT_READ|PROT_WRITE|PROT_EXEC` in one `mprotect` on libc's text page. That is a file-backed
+  executable mapping, so making it writable is SELinux's `execmod`, which `untrusted_app` does
+  not have: the call is refused, the function returns false, and the hook silently never
+  installs. It looks exactly like "the module does nothing". The working form drops `PROT_EXEC`
+  for the duration of the write and restores it immediately, which is what the policy is
+  actually about.
+- **The reason it was dropped.** Patching machine code inside every configured app process is a
+  poor risk-to-reward trade for this feature, and it cannot be validated from here -- only by
+  repeated on-device testing. An unverifiable patch in every app process is not something to
+  ship on the strength of a successful compile.
+
+The probe's "Java property vs native property" row is what makes the remaining gap visible, and
+it stays. So does its getprop failure reporting, which was improved while chasing this: the three
+ways `getprop` can fail -- could not start, produced unparseable output, hung -- live in different
+layers and now say so individually rather than sharing one message.
+
 ---
 
 ## The one boundary the privacy layer cannot cross

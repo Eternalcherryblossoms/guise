@@ -61,6 +61,49 @@ jobs:
       - name: Assemble
         run: ./gradlew :xposed:assembleDebug :app:assembleDebug :probe:assembleDebug --stacktrace
 
+      # Signed release builds, tags only. The key arrives as a repository secret and is decoded
+      # to a temporary file; neither it nor its password is ever written into the repository.
+      # See the note in app/build.gradle.kts for why the format is JKS/PKCS12 and not BKS.
+      - name: Decode the release keystore
+        if: startsWith(github.ref, 'refs/tags/v')
+        env:
+          KEYSTORE_BASE64: ${{ secrets.GUISE_KEYSTORE_BASE64 }}
+        run: |
+          set -euo pipefail
+          if [ -z "${KEYSTORE_BASE64}" ]; then
+            echo "::error::GUISE_KEYSTORE_BASE64 is not set; a release would be unsigned."
+            echo "An unsigned APK cannot be installed, so this fails rather than publishing one."
+            exit 1
+          fi
+          printf '%s' "${KEYSTORE_BASE64}" | base64 -d > "${RUNNER_TEMP}/guise-release.jks"
+          echo "GUISE_KEYSTORE=${RUNNER_TEMP}/guise-release.jks" >> "${GITHUB_ENV}"
+          echo "keystore decoded: $(stat -c%s "${RUNNER_TEMP}/guise-release.jks") bytes"
+
+      - name: Assemble release
+        if: startsWith(github.ref, 'refs/tags/v')
+        env:
+          GUISE_KEYSTORE_PASSWORD: ${{ secrets.GUISE_KEYSTORE_PASSWORD }}
+          GUISE_KEY_ALIAS: ${{ secrets.GUISE_KEY_ALIAS }}
+          GUISE_KEY_PASSWORD: ${{ secrets.GUISE_KEY_PASSWORD }}
+        run: ./gradlew :app:assembleRelease :probe:assembleRelease --stacktrace
+
+      # Signing is verified rather than assumed. `assembleRelease` with no credentials present
+      # produces an APK that is simply unsigned, which would look like a successful build right
+      # up until someone tried to install it.
+      - name: Verify release signatures
+        if: startsWith(github.ref, 'refs/tags/v')
+        run: |
+          set -euo pipefail
+          SIGNER="$(find "${ANDROID_HOME}/build-tools" -name apksigner -type f | sort | tail -n1)"
+          echo "apksigner: ${SIGNER}"
+          shopt -s nullglob
+          apks=(app/build/outputs/apk/release/*.apk probe/build/outputs/apk/release/*.apk)
+          if [ "${#apks[@]}" -eq 0 ]; then echo "no release APK produced"; exit 1; fi
+          for apk in "${apks[@]}"; do
+            echo "--- ${apk}"
+            "${SIGNER}" verify --print-certs "${apk}" | grep -E 'certificate DN|SHA-256 digest'
+          done
+
       # The device catalog is published as its own release asset so the module can refresh it
       # without an APK release. The full SHA-256 goes *in the file name*: the client then needs no
       # separate manifest to trust, and cannot mistake a truncated download for a catalog. The
@@ -80,6 +123,16 @@ jobs:
           path: |
             app/build/outputs/apk/debug/*.apk
             probe/build/outputs/apk/debug/*.apk
+          if-no-files-found: error
+
+      - name: Upload signed release APKs
+        if: startsWith(github.ref, 'refs/tags/v')
+        uses: actions/upload-artifact@v4
+        with:
+          name: apks-release
+          path: |
+            app/build/outputs/apk/release/*.apk
+            probe/build/outputs/apk/release/*.apk
           if-no-files-found: error
 
       - name: Upload catalog
@@ -107,6 +160,11 @@ jobs:
 
       - uses: actions/download-artifact@v4
         with:
+          name: apks-release
+          path: apks-release
+
+      - uses: actions/download-artifact@v4
+        with:
           name: catalog
           path: catalog
 
@@ -115,12 +173,23 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
-          # find rather than a glob: upload-artifact preserves each file's path relative to
-          # the repo root, so the APKs land at apks/app/build/... and apks/probe/build/...,
-          # and a naive apks/*.apk matches nothing. (It did, on the first attempt.)
-          mapfile -t apks < <(find apks -type f -name '*.apk' | sort)
+          # find rather than a glob: upload-artifact preserves each file's path relative to the
+          # repo root, so the APKs land at apks/app/build/... and apks/probe/build/..., and a
+          # naive apks/*.apk matches nothing. (It did, on the first attempt.)
+          #
+          # Signed release APKs are preferred, and the debug ones are dropped when they exist.
+          # Publishing both would mean shipping two different applications -- the debug build
+          # carries a `.debug` applicationId suffix -- which invites installing the wrong one.
+          mapfile -t signed < <(find apks-release -type f -name '*.apk' 2>/dev/null | sort)
+          if [ "${#signed[@]}" -gt 0 ]; then
+            apks=("${signed[@]}")
+            echo "publishing signed release APKs"
+          else
+            mapfile -t apks < <(find apks -type f -name '*.apk' | sort)
+            echo "::warning::no signed release APK; publishing debug APKs (package suffix .debug)"
+          fi
           if [ "${#apks[@]}" -eq 0 ]; then
-            echo "no APK found under apks/"; find apks -type f | head -20; exit 1
+            echo "no APK found"; find apks apks-release -type f | head -20; exit 1
           fi
           mapfile -t catalogs < <(find catalog -type f -name 'catalog-*.json' | sort)
           if [ "${#catalogs[@]}" -eq 0 ]; then

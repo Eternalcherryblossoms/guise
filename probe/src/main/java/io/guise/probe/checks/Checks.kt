@@ -232,14 +232,23 @@ class NativePropertyCheck : ProbeCheck {
                 id = id,
                 title = title,
                 verdict = Verdict.UNSUPPORTED,
-                headline = "无法读取原生属性视图（getprop 未返回内容）",
+                headline = "无法读取原生属性视图（getprop 没给出结果）",
                 findings = listOf(
                     Finding(
-                        label = "为什么测不出来很重要",
-                        observed = "getprop 无输出",
+                        label = "为什么读不到",
+                        observed = Props.nativeFailure ?: "未知原因",
                         verdict = Verdict.INFO,
-                        detail = "这一项需要能执行 getprop。读不到就无法判断原生调用方看到了什么——" +
-                            "这是「没测出来」，不是「没问题」。",
+                        detail = "「没测出来」不是「没问题」，所以这里必须说明是哪一种失败。" +
+                            "启动不了（沙箱拒绝 fork）、跑起来了但输出解析不了、跑起来了但卡住，" +
+                            "是三个不同层次的问题，处理方式完全不同。",
+                    ),
+                    Finding(
+                        label = "这一项在测什么",
+                        observed = "getprop 在子进程里直接读属性区",
+                        verdict = Verdict.INFO,
+                        detail = "属性区是 init 开机时填好的共享内存，__system_property_get 直接读它，" +
+                            "Java 层 hook 拦不到。getprop 是能读那块内存的可执行文件，" +
+                            "所以它是普通应用唯一能问出「原生调用方被告知了什么」的途径。",
                     ),
                 ),
             )

@@ -51,6 +51,18 @@ object Props {
     fun viaJava(name: String): String? = viaReflection(name)
 
     /**
+     * Why the native view could not be read, when it could not; null when it was read.
+     *
+     * Kept because "no answer" has several causes that need different responses, and a
+     * diagnostic that reports all of them as one message is not a diagnostic. A `getprop` that
+     * cannot be started (a sandbox refusing to fork), one that runs but produces nothing
+     * parseable, and one that hangs are three different problems in three different layers.
+     */
+    @Volatile
+    var nativeFailure: String? = null
+        private set
+
+    /**
      * What a native caller is told.
      *
      * Deliberately not cached per key: the whole `getprop` table is read once and reused, so
@@ -58,7 +70,7 @@ object Props {
      */
     fun viaNative(name: String): String? {
         bulk?.let { return it[name] }
-        val parsed = readGetpropBounded() ?: emptyMap()
+        val parsed = readGetpropBounded() ?: return null
         bulk = parsed
         return parsed[name]
     }
@@ -84,23 +96,36 @@ object Props {
      */
     private fun readGetpropBounded(): Map<String, String>? {
         var parsed: Map<String, String>? = null
+        var failure: String? = null
         val worker = Thread {
-            parsed = runCatching {
+            try {
                 val process = ProcessBuilder("getprop").redirectErrorStream(true).start()
                 val text = process.inputStream.bufferedReader().use { it.readText() }
-                process.waitFor()
-                // Lines look like: [ro.product.model]: [M2011K2C]
-                Regex("""\[([^\]]+)]:\s*\[([^\]]*)]""").findAll(text)
+                val code = process.waitFor()
+                val table = Regex("""\[([^\]]+)]:\s*\[([^\]]*)]""").findAll(text)
                     .associate { it.groupValues[1] to it.groupValues[2] }
-            }.getOrNull()
+                if (table.isEmpty()) {
+                    // Started, exited, and said nothing usable. Distinct from both other cases:
+                    // it means the binary ran but its output is not in the expected shape.
+                    failure = "getprop 退出码 $code，输出无法解析（${text.length} 字节，" +
+                        "前 80 字节：${text.take(80).replace("\n", "\\n")}）"
+                } else {
+                    parsed = table
+                }
+            } catch (t: Throwable) {
+                // The usual way this fails: the process could not be created at all.
+                failure = "${t.javaClass.simpleName}: ${t.message}"
+            }
         }
         worker.isDaemon = true
         worker.start()
         worker.join(GETPROP_TIMEOUT_MS)
         if (worker.isAlive) {
             worker.interrupt()
+            nativeFailure = "getprop 在 ${GETPROP_TIMEOUT_MS} ms 内没有结束——进程起来了但卡住了"
             return null
         }
+        nativeFailure = failure
         return parsed
     }
 

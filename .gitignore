@@ -26,3 +26,11 @@ Thumbs.db
 # debug credentials (store/key password "android", alias "androiddebugkey"), which are
 # public by convention and are not a secret. Tracking it keeps debug builds reproducible
 # on machines where the home directory is not writable.
+#
+# The *release* key is the opposite. Public knowledge of it would let anyone sign an APK that
+# installs over a genuine one, and losing it means this app can never be updated again under
+# the same package name. Neither the key nor its password belongs in the repository.
+keystore.properties
+keystore/*.jks
+keystore/*.keystore
+!keystore/debug.keystore

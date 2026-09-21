@@ -217,6 +217,27 @@ Guise 的做法不同：
 
 > ⚠️ **仅在仓库公开时有效。** 私有仓库的 Releases API 对未认证请求返回 404，应用会静默显示"未发现新版本"。
 
+### ⚠️ 5.9.0 起换了签名，也换了包名 —— 需要重装一次
+
+5.9.0 之前的所有版本都是**调试签名**（用的是仓库里公开的调试密钥）并且包名带 `.debug` 后缀。5.9.0 是第一个**正式签名**的版本，包名也回到 `io.guise`。两件事都有后果：
+
+| | 之前 | 5.9.0 起 |
+|---|---|---|
+| 签名密钥 | 公开的调试密钥（仓库里就有） | 私有的发布密钥（**不在仓库里**） |
+| 应用包名 | `io.guise.debug` | `io.guise` |
+| 探针包名 | `io.guise.probe.debug` | `io.guise.probe` |
+
+**所以 5.9.0 不能覆盖安装在旧版之上**（包名不同，是两个应用）。升级步骤：
+
+1. 在 LSPosed / KernelSU 里**停用**旧模块，然后**卸载** `io.guise.debug` 与 `io.guise.probe.debug`；
+2. 安装 `Guise-release-5.9.0.apk` 与 `GuiseProbe-release-5.9.0.apk`；
+3. 在 LSPosed 里**重新启用** Guise 并**重新勾选作用域**（模块换包名后，配置和作用域都是全新的）；
+4. 重新给目标应用选机型档案。
+
+**为什么值得换**：旧的调试密钥是公开的——任何人拿着这个仓库都能签一个能覆盖安装的 APK。对一个专门做设备伪装的模块来说，那是一条真实的供应链风险。发布密钥只在你手上（`keystore.properties`，已 gitignore）。
+
+**务必备份发布密钥。** 它一旦丢失，这个包名下的应用就**再也无法更新**——只能换包名重新发。
+
 ## 从源码构建
 
 ```bash
@@ -312,7 +333,13 @@ docs/        架构说明与实测发现
 
 **一个看着可行、其实无效的办法**：把伪造的 `build.prop` 挂载到 `/system`。**它不可能有用**——那些文件只在**开机时被 `init` 读一次**，运行时的值来自内存，不来自文件。对已经启动的系统挂载假文件，什么都不会变。唯一能改原生属性读取的，是在**原生读取函数本身上**打 hook。
 
-这正是为什么需要一个可选的 Zygisk 模块：它要干两件不同的原生层工作——**hook `__system_property_get`**（覆盖 Flutter 这类原生读取），和**挂载命名空间**（覆盖「所有文件访问权限」那类按路径直读）。两者都不属于 LSPosed 层。
+**这个缺口目前没有修。** 一个原生属性层（Zygisk 模块）写出来过——它在配置的应用进程里替换 `__system_property_get`——但**没有发布**：它在真机上没有验证通过，而且它要在每个应用进程里打机器码补丁，风险与收益不成比例。所以现状是：
+
+- LSPosed 层覆盖的东西（Java 能读到的一切）**照常有效**；
+- **原生读取仍是真值**，走 NDK 的应用（Flutter / Unity / 带 native 指纹 SDK 的）不受影响；
+- 探针的 **「Java 属性 vs 原生属性」** 这一项会把这件事明确报出来，而不是给你一个虚假的安心。
+
+要做的话，它需要一个可选的 Zygisk 模块和**真机反复验证**，不是靠推断能完成的。
 
 **探针报「内核 SoC 描述不一致」？**
 高通设备上已知。`/sys/devices/soc0/machine` 会说出真实芯片（如 `Snapdragon`）。当前版本没有覆盖它——需要 Zygisk 层在进程私有 mount namespace 里伪造该文件。**临时办法：选一个同平台的档案。**
@@ -620,6 +647,35 @@ query string. It runs when you open the About screen, not on every launch.
 > of a private repository, and the app treats that as "no update information" rather than an
 > error.
 
+### ⚠️ 5.9.0 changes the signing key and the package name -- reinstall once
+
+Every release before 5.9.0 was **debug-signed** (with the debug key that is committed to this
+repository) and carried a `.debug` package suffix. 5.9.0 is the first **release-signed** build, and
+the package name is `io.guise` again. Both changes have consequences:
+
+| | Before | From 5.9.0 |
+|---|---|---|
+| Signing key | the public debug key, committed to this repo | a private release key (**not** in the repo) |
+| App package | `io.guise.debug` | `io.guise` |
+| Probe package | `io.guise.probe.debug` | `io.guise.probe` |
+
+**5.9.0 therefore cannot install over an older build** -- different package, so it is a different
+app. To upgrade:
+
+1. **Disable** the old module in LSPosed/KernelSU, then **uninstall** `io.guise.debug` and
+   `io.guise.probe.debug`;
+2. Install `Guise-release-5.9.0.apk` and `GuiseProbe-release-5.9.0.apk`;
+3. **Re-enable** Guise in LSPosed and **re-select its scope** -- a new package means fresh config
+   and a fresh scope;
+4. Pick device profiles for your target apps again.
+
+**Why it is worth it**: the old debug key is public, so anyone with this repository could sign an
+APK that installs over a genuine one. For a module whose entire job is device spoofing, that is a
+real supply-chain risk. The release key stays with you (`keystore.properties`, gitignored).
+
+**Back up the release key.** If it is lost, this app can never be updated again under this package
+name -- only republished under a new one.
+
 ## Building from source
 
 ```bash
@@ -724,9 +780,19 @@ Those files are read by `init` **once, at boot**; the runtime value comes from m
 file. Mounting a fake file over a running system changes nothing. The only thing that changes a
 native property read is a hook **on the native function itself**.
 
-That is why an optional Zygisk module is needed, and it has two distinct native-layer jobs: **hook
-`__system_property_get`** (Flutter and the like) and **a mount namespace** (the path-based
-"all files access" case). Neither belongs in LSPosed.
+**That gap is currently unfixed.** A native property layer -- a Zygisk module that replaced
+`__system_property_get` inside configured app processes -- was written and **not shipped**: it was
+never verified on a real device, and it patches machine code inside every app process it targets,
+which is a poor risk-to-reward trade for this feature. So today:
+
+- everything LSPosed covers (anything Java can read) **works as documented**;
+- **native reads still return the truth**, so NDK-based apps (Flutter, Unity, native
+  fingerprinting SDKs) are unaffected;
+- the probe's **"Java property vs native property"** row states that plainly instead of offering
+  false comfort.
+
+Closing it needs an optional Zygisk module and **repeated on-device verification** -- it is not
+something that can be reasoned into existence.
 
 **The probe reports visible injection traces.**
 Zygisk/LSPosed `.so` paths are showing up in `/proc/self/maps`. Install a concealment module
