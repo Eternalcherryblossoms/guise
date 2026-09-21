@@ -144,7 +144,7 @@ private fun DomainCard(
 
             Spacer(Modifier.height(8.dp))
             Text(
-                domain.permission,
+                domain.permission(),
                 style = MaterialTheme.typography.labelSmall,
                 fontFamily = FontFamily.Monospace,
                 color = MaterialTheme.colorScheme.outline,

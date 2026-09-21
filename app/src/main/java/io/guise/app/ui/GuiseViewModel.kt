@@ -32,6 +32,16 @@ sealed interface Screen {
     data object DevicePicker : Screen
     data object About : Screen
     data class Detail(val packageName: String) : Screen
+
+    /**
+     * The privacy domains for one target.
+     *
+     * Its own screen rather than a section inside [Detail] because the list grows every time a
+     * data class is added, and the detail screen already carries a device profile, a version
+     * note, sixteen identity fields and thirty field overrides. Burying six switches at the
+     * bottom of that is how a feature stops being found.
+     */
+    data class Privacy(val packageName: String) : Screen
 }
 
 /** Whether the update check has run, so the About screen can say "not checked" honestly. */
@@ -185,11 +195,20 @@ class GuiseViewModel(app: Application) : AndroidViewModel(app) {
         screen = Screen.Detail(packageName)
     }
 
+    fun openPrivacy(packageName: String) {
+        screen = Screen.Privacy(packageName)
+    }
+
+    /** How many domains this target has switched on, for the summary card. */
+    fun emptiedCount(packageName: String): Int =
+        config.target(packageName)?.emptiedDomains?.size ?: 0
+
     fun back() {
         screen = when (val s = screen) {
             is Screen.DevicePicker -> if (changingProfileFor != null) Screen.Detail(changingProfileFor!!) else Screen.AppPicker
             Screen.AppPicker -> Screen.Home
             is Screen.Detail -> Screen.Home
+            is Screen.Privacy -> Screen.Detail(s.packageName)
             Screen.About -> Screen.Home
             Screen.Home -> Screen.Home
         }

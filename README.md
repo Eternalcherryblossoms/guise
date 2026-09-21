@@ -55,13 +55,30 @@ Guise 的做法不同：
 
 > **权限真的授予（你在系统设置里点允许），但数据源被掏空。应用正常启动，然后读到 0 条。**
 
-| 数据 | 说明 |
-|---|---|
-| **通讯录** | 应用读到 0 条联系人 |
-| **通话记录** | 应用读到 0 条记录。**建议与通讯录同时开启**——只清空联系人却留着通话记录，等于告诉对方「这个人有来电但没有联系人」 |
-| **日历** | 0 个日历、0 条日程 |
+每一项在管理界面里是**独立开关**，逐个应用配置（入口：应用详情页 → 「隐私数据」卡片）。
+
+| 数据 | 需要授予的权限 | 应用读到什么 |
+|---|---|---|
+| **通讯录** | `READ_CONTACTS` | 0 条联系人 |
+| **通话记录** | `READ_CALL_LOG` | 0 条记录。**建议与通讯录同时开启**——只清空联系人却留着通话记录，等于告诉对方「这个人有来电但没有联系人」 |
+| **日历** | `READ_CALENDAR` | 0 个日历、0 条日程 |
+| **相册** | `READ_MEDIA_IMAGES` / `READ_MEDIA_VIDEO` / `READ_MEDIA_AUDIO`（Android 13 起拆成三个，都要授权） | 0 张图片、0 个视频、0 首音频 |
+| **短信** | `READ_SMS` | 0 条短信与彩信。**只拦「读取」**——短信送达是系统推给应用的，hook 不到，所以等验证码的应用照样收得到 |
+| **文件（系统选择器）** | `MANAGE_EXTERNAL_STORAGE` | 通过系统文件选择器（SAF）浏览时看到 0 个文件，含「下载」目录 |
 
 **为什么是空数据而不是可信假数据**：空的通讯录是一种**常见状态**（真有人通讯录是空的），所以**没有东西可以被交叉比对**。而伪造的联系人只有在**完全自洽**时才有意义——姓名要符合地区、号码段要对应伪装的定位、还要和通话记录呼应。那需要一套「人格档案」和地区语料库，是下一步而不是这一步。
+
+### 关于「所有文件访问权限」
+
+这是最常被问的一项，也是 Guise 目前**没有完全解决**的一项，说清楚边界比含糊承诺重要：
+
+- **能做到的**：走**内容提供者**（content provider）的路径全部被掏空。现代应用读共享存储基本都走这条路——分区存储（scoped storage）把它们逼到了 `MediaStore` 和 SAF，所以相册、SAF 文件浏览器读到 0 条。
+- **做不到的**：持 `MANAGE_EXTERNAL_STORAGE` 的应用**直接按路径**用 `java.io.File` 打开 `/storage/emulated/0/...`。这条路径根本不经过提供者，所以这里拦不到。
+- **为什么不在这里硬拦**：在 Java 层替换 `File` 的读取既**漏**（原生代码绕过，`open()`/`fopen()` 走的是另一套）又**危险**（框架自己在同一进程里也用 `File`，改坏了是整个系统不稳）。真正的「黑盒」——把应用关进一个只剩指定文件夹的**挂载命名空间**——是原生层（Zygisk/内核）的活，不是 LSPosed 层的活。
+
+也就是说：**「把应用关进一个只能看见指定外部文件夹的黑盒」这个想法是对的，但它的正确实现位置在挂载层**。Guise 目前在 LSPosed 层做到的是「凡是经过 Android 数据访问 API 的，都掏空」；按路径直读的留给后续的原生模块，路线记在 `docs/FINDINGS.md`。
+
+> 有人会问：那我不给「所有文件访问权限」不就行了？——**不行，这就是这个功能存在的理由**。撤掉权限，应用会卡在自己的权限门上不让你用；而授予权限再掏空数据源，应用才会**正常启动然后读到 0 条**。
 
 **已知风险**：假设至少有一行的应用（`cursor.moveToFirst()` 后不判空就 `getString()`）会崩溃。这类应用在真实用户通讯录为空时同样会崩，是应用自己的 bug——但用户会认为是 Guise 弄坏的。
 
@@ -290,17 +307,50 @@ So Guise does the opposite:
 > **The permission really is granted** (you tap allow in Android settings) **and the data source
 > is emptied.** The app starts normally and then finds zero rows.
 
-| Data | What the app sees |
-|---|---|
-| **Contacts** | zero contacts |
-| **Call log** | zero entries. **Turn this on alongside contacts** -- emptying contacts while leaving the call log says "this person receives calls but knows nobody" |
-| **Calendar** | zero calendars, zero events |
+Each one is an **independent switch**, configured per app (entry point: app detail screen ->
+"Privacy data" card).
+
+| Data | Permission to grant | What the app reads |
+|---|---|---|
+| **Contacts** | `READ_CONTACTS` | zero contacts |
+| **Call log** | `READ_CALL_LOG` | zero entries. **Turn this on alongside contacts** -- emptying contacts while leaving the call log says "this person receives calls but knows nobody" |
+| **Calendar** | `READ_CALENDAR` | zero calendars, zero events |
+| **Media** | `READ_MEDIA_IMAGES` / `READ_MEDIA_VIDEO` / `READ_MEDIA_AUDIO` (split into three since Android 13 -- grant all of them) | zero images, zero videos, zero audio |
+| **SMS** | `READ_SMS` | zero texts and MMS. **Reads only** -- delivery is pushed to the app by the system and cannot be hooked, so an app waiting for a verification code still receives it |
+| **Documents (system picker)** | `MANAGE_EXTERNAL_STORAGE` | zero files when browsing through the Storage Access Framework, including the Downloads folder |
 
 **Why empty rather than plausible fake data:** an empty address book is an *ordinary state* --
 plenty of real people have one -- so there is nothing to cross-check. A fabricated contact list
 is only better if it is fully coherent: names matching the region, dialling codes matching the
 faked location, consistent with the call log beside it. That needs a persona model and a region
 corpus, which is the next step rather than this one.
+
+### About "All files access"
+
+This is the most frequently asked item and the one Guise does **not** fully cover yet. Stating the
+boundary plainly beats a vague promise:
+
+- **What works:** everything that goes through a **content provider** is emptied. Modern apps
+  reach shared storage that way almost by default -- scoped storage pushed them onto `MediaStore`
+  and the Storage Access Framework -- so galleries and SAF file browsers read zero rows.
+- **What does not:** an app holding `MANAGE_EXTERNAL_STORAGE` that opens
+  `/storage/emulated/0/...` **by path** through `java.io.File`. That path never touches a
+  provider, so nothing here sees it.
+- **Why it is not forced here:** replacing `File` reads at the Java layer is both **leaky**
+  (native code bypasses it -- `open()`/`fopen()` are a different route) and **dangerous** (the
+  framework uses `File` in the same process; breaking it destabilises everything). The real
+  "black box" -- a **mount namespace** in which the app can only see one nominated folder -- is
+  native-layer work (Zygisk/kernel), not LSPosed-layer work.
+
+In other words: **"confine the app to a black box containing only a nominated external folder" is
+the right idea, but its correct implementation site is the mount layer.** What Guise does today at
+the LSPosed layer is "anything reaching Android's data-access APIs comes back empty"; path-based
+direct reads are left to a future native module, with the route recorded in `docs/FINDINGS.md`.
+
+> The obvious question: can I just not grant "All files access"? -- **No, and that is exactly why
+> this feature exists.** Take the permission away and the app stops at its own permission gate and
+> refuses to run; grant it and empty the data source, and the app **starts normally and then reads
+> zero rows**.
 
 **Known risk:** an app that assumes at least one row (`cursor.moveToFirst()` then `getString()`
 with no null check) will crash on an empty cursor. Such an app also crashes for a real user with

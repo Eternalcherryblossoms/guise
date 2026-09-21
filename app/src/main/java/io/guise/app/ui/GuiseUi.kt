@@ -66,6 +66,7 @@ fun GuiseRoot(vm: GuiseViewModel) {
         Screen.DevicePicker -> "选择机型档案"
         Screen.About -> "关于"
         is Screen.Detail -> vm.labelOf(s.packageName)
+        is Screen.Privacy -> "隐私数据"
     }
 
     Scaffold(
@@ -100,6 +101,7 @@ fun GuiseRoot(vm: GuiseViewModel) {
                 Screen.DevicePicker -> DevicePickerScreen(vm)
                 Screen.About -> AboutScreen(vm)
                 is Screen.Detail -> DetailScreen(vm, s.packageName)
+                is Screen.Privacy -> PrivacyScreen(vm, s.packageName)
             }
         }
     }
@@ -442,31 +444,39 @@ private fun DetailScreen(vm: GuiseViewModel, packageName: String) {
             }
         }
 
+        // A summary that opens its own screen rather than six switches inline. The list grows
+        // every time a data class is added, and this screen already carries a profile, a version
+        // note, sixteen identity fields and thirty overrides.
         item {
-            Text(
-                "隐私数据",
-                style = MaterialTheme.typography.titleMedium,
-                modifier = Modifier.padding(top = 16.dp),
-            )
-        }
-
-        item {
-            Text(
-                "权限不会被撤销——你需要在系统设置里正常授予，应用才能通过它自己的权限门。" +
-                    "开启后应用会读到 0 条数据，就像这些数据本来就不存在。" +
-                    "空的通讯录是一种常见状态，所以没有东西可以被交叉比对。",
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
-        }
-
-        items(PrivacyDomain.entries.toList(), key = { "privacy-${it.id}" }) { domain ->
-            PrivacyRow(
-                domain = domain,
-                enabled = target.emptiedDomains.contains(domain.id),
-                onToggle = { vm.setPrivacyDomain(packageName, domain, it) },
-            )
-            HorizontalDivider()
+            val count = vm.emptiedCount(packageName)
+            Card(
+                Modifier.fillMaxWidth().padding(top = 16.dp).clickable { vm.openPrivacy(packageName) },
+            ) {
+                Row(
+                    Modifier.fillMaxWidth().padding(16.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Column(Modifier.weight(1f)) {
+                        Text("隐私数据", style = MaterialTheme.typography.titleMedium)
+                        Spacer(Modifier.height(2.dp))
+                        Text(
+                            if (count == 0) "未清空任何数据" else "已清空 $count 类数据",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = if (count == 0) {
+                                MaterialTheme.colorScheme.onSurfaceVariant
+                            } else {
+                                MaterialTheme.colorScheme.primary
+                            },
+                        )
+                        Text(
+                            "权限不会被撤销——应用会正常启动，只是读到 0 条数据。",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
+                    Text("›", style = MaterialTheme.typography.titleLarge)
+                }
+            }
         }
 
         item {
@@ -624,6 +634,70 @@ private fun OverrideDialog(
 // ---------------------------------------------------------------------------
 // About
 // ---------------------------------------------------------------------------
+
+// ---------------------------------------------------------------------------
+// Privacy
+// ---------------------------------------------------------------------------
+
+@Composable
+private fun PrivacyScreen(vm: GuiseViewModel, packageName: String) {
+    val target = vm.config.target(packageName)
+    if (target == null) {
+        Text("配置已移除", Modifier.padding(16.dp))
+        return
+    }
+
+    LazyColumn(
+        modifier = Modifier.fillMaxSize(),
+        contentPadding = androidx.compose.foundation.layout.PaddingValues(16.dp),
+        verticalArrangement = Arrangement.spacedBy(10.dp),
+    ) {
+        item {
+            NoteCard(
+                title = "这不是「拒绝权限」",
+                body = "撤销权限会让应用在自己的权限门上直接拒绝运行——" +
+                    "「不给通讯录就不让用」正是要解决的问题，撤销解决不了它。\n\n" +
+                    "所以这里做的是反过来的事：**权限你在系统设置里正常授予，Guise 只把数据源掏空。**" +
+                    "应用正常启动，然后读到 0 条数据。\n\n" +
+                    "空的通讯录、空的相册都是**常见状态**（真有人就是没有照片），" +
+                    "所以没有东西可以被交叉比对。这也意味着它比「伪造一批假数据」更难被发现——" +
+                    "前提是你别只清一半。",
+            )
+        }
+
+        item {
+            Text(
+                "数据域",
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.SemiBold,
+                modifier = Modifier.padding(top = 4.dp),
+            )
+        }
+
+        items(PrivacyDomain.entries.toList(), key = { it.id }) { domain ->
+            PrivacyRow(
+                domain = domain,
+                enabled = target.emptiedDomains.contains(domain.id),
+                onToggle = { vm.setPrivacyDomain(packageName, domain, it) },
+            )
+            HorizontalDivider()
+        }
+
+        item {
+            NoteCard(
+                title = "有一类应用不受这里影响",
+                body = "上面每一项都作用在**内容提供器**上（ContentProvider），" +
+                    "这也是现代应用读共享数据要走的路。\n\n" +
+                    "但持有「所有文件访问权限」（MANAGE_EXTERNAL_STORAGE）的应用会**直接用路径**" +
+                    "打开 /storage/emulated/0/...，完全不经过提供器，所以拦不住。" +
+                    "要拦它得在原生层给应用挂一个假的外部存储——那是另一个量级的工程，" +
+                    "目前没有做，也没有假装做了。",
+            )
+        }
+
+        item { Spacer(Modifier.height(24.dp)) }
+    }
+}
 
 @Composable
 private fun AboutScreen(vm: GuiseViewModel) {

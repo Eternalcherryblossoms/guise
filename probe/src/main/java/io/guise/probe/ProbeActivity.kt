@@ -146,7 +146,7 @@ class ProbeActivity : ComponentActivity() {
 
                             Screen.PRIVACY -> PrivacyScreen(
                                 report = privacy,
-                                onRequest = { domain -> permissionLauncher.launch(domain.permission) },
+                                onRequest = { domain -> permissionLauncher.launch(domain.permission()) },
                                 onRefresh = readPrivacy,
                             )
                         }

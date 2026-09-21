@@ -61,3 +61,44 @@ Three design decisions were reversed by it:
 
 The pattern is consistent enough to be the point: every claim in this project that was not
 checked against a real device eventually had to be revised.
+
+---
+
+## The one boundary the privacy layer cannot cross
+
+Emptied data sources cover every domain backed by a **content provider** -- contacts, call log,
+calendar, `MediaStore`, SMS/MMS, and the Storage Access Framework. That is not a coincidence: it
+is the shape of modern Android. Scoped storage pushed apps onto `MediaStore` and SAF, so a hook on
+`ContentResolver.query` sits on the road nearly everyone drives on.
+
+`MANAGE_EXTERNAL_STORAGE` is the exception, and it is worth writing down why rather than leaving a
+feature request open forever.
+
+An app holding that permission can open `/storage/emulated/0/DCIM/x.jpg` **by path** through
+`java.io.File`. No provider is involved, so `PrivacyChannel` never sees the query. Three candidate
+fixes were considered and all three were rejected at this layer:
+
+| Candidate | Why not |
+|---|---|
+| **Hook `java.io.File` / `FileInputStream` in the target process** | Leaky *and* dangerous. Leaky because native code does not call Java: `open()`/`fopen()` reach the kernel directly, so anything with an `.so` -- which is every app with a media or download library -- walks around it. Dangerous because the framework uses `File` in the same process for its own bookkeeping; a partial edit destabilises the app and the process hosting it. |
+| **Revoke `MANAGE_EXTERNAL_STORAGE`** | This is the failure mode the whole privacy feature exists to avoid. The app hits its own permission gate and refuses to run, which is exactly the "calculator demanding my contacts" complaint. |
+| **Redirect path strings** (`/storage/emulated/0` -> a private sandbox) | Strings are just data. The kernel resolves the path, not the app's string, and plenty of code addresses storage through a file descriptor or an `fdsan`-tracked handle obtained earlier. |
+
+**What actually works is a mount namespace.** Give the target process a private mount table in
+which `/storage/emulated/0` is a bind mount of one nominated folder, and the app cannot name a
+path outside it -- not through `File`, not through `open()`, not through a native library. The
+kernel enforces it; there is nothing to bypass. That is the "black box" the feature request asks
+for, and its correct implementation site is the **native/Zygisk layer**, not LSPosed.
+
+The consequences, stated plainly so the README is not read as promising more than it delivers:
+
+1. Guise at the LSPosed layer currently guarantees **"anything reaching Android's data-access APIs
+   comes back empty"**. Path-based direct reads are out of scope today.
+2. A Guise privacy domain for `MANAGE_EXTERNAL_STORAGE` therefore covers the **SAF picker** path
+   (`com.android.externalstorage.documents`, `com.android.providers.downloads.documents`) and
+   nothing else. Its label and explanation say so.
+3. The download-manager provider (`com.android.providers.downloads`) is deliberately **not**
+   covered: emptying it would break downloading inside the target app, which is a functional
+   regression disguised as a privacy win.
+4. A future native module would be additive, not a replacement: provider-level emptying would stay
+   as the cheap path that works without a kernel component installed.

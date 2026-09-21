@@ -15,8 +15,8 @@ android {
         applicationId = "io.guise.probe"
         minSdk = 28
         targetSdk = 36
-        versionCode = 12
-        versionName = "5.3.1"
+        versionCode = 13
+        versionName = "5.4.0"
         resourceConfigurations += listOf("zh", "en")
     }
 
