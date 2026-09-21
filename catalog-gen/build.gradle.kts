@@ -70,6 +70,27 @@ tasks.register<JavaExec>("fetchPixel") {
     }
 }
 
+/**
+ * Reduces a corpus of firmware `build.prop` dumps to the fields the catalog can use.
+ *
+ * Like [fetchPixel], this is the network-and-bulk half of the pipeline, kept out of the generator
+ * so that `--check` stays deterministic and offline. The corpus itself is not part of this
+ * repository; the reduced snapshot is, and it is what the generator reads.
+ *
+ *     ./gradlew :catalog-gen:extractBuildProps -Pargs="--dir ../tadiphone \
+ *         --override kona=sm8250,taro=sm8450"
+ */
+tasks.register<JavaExec>("extractBuildProps") {
+    group = "catalog"
+    description = "Reduce a firmware build.prop corpus to catalog/raw/buildprops.json"
+    mainClass.set("io.guise.cataloggen.ExtractBuildPropsKt")
+    classpath = sourceSets["main"].runtimeClasspath
+    workingDir = rootProject.projectDir
+    (project.findProperty("args") as String?)?.let { extra ->
+        args = extra.split(" ").filter(String::isNotBlank)
+    }
+}
+
 tasks.withType<Test>().configureEach {
     useJUnit()
     testLogging { events("passed", "failed", "skipped") }

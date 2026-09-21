@@ -1,6 +1,10 @@
 package io.guise.core
 
+import io.guise.core.profile.Compatibility
+import io.guise.core.profile.HandsetFacts
+import io.guise.core.profile.RamTier
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
@@ -81,12 +85,47 @@ class CatalogTest {
     }
 
     @Test
-    fun `every bundled device declares the memory it shipped with`() {
+    fun `memory is declared for every tier a handset in the catalog must be able to wear`() {
+        // The assertion this replaces read "every bundled device declares the memory it shipped
+        // with", which was right when every entry was hand-entered from a spec sheet. It is no
+        // longer the invariant that matters, because most entries now come from firmware dumps
+        // and a `build.prop` states no memory at all.
+        //
+        // The invariant that does matter is this one. `ramBytes` is a *compatibility constraint*,
+        // never a reported value -- physical memory cannot be spoofed by any layer -- so an entry
+        // that declares nothing claims nothing false, and the module reports the real figure
+        // either way. What would be a real defect is a handset configuration with no entry that
+        // can be checked against it, which is what the tier coverage below asserts.
         val catalog = TestCatalog.load()
-        val unspecified = catalog.devices.values.filter { it.ramBytes <= 0L }.map { it.key }
+        assertEquals(emptyList<Int>(), catalog.uncoveredRamGiB(listOf(6, 8, 12, 16)))
+
+        // Entries that do declare memory must declare a capacity handsets ship with; that is
+        // enforced by the validator, and this pins that it is enforced on real data too.
+        val declared = catalog.devices.values.mapNotNull { RamTier.nominalGiB(it.ramBytes) }
+        assertTrue("no entry declares memory at all", declared.isNotEmpty())
         assertTrue(
-            "memory is a compatibility constraint, so a shipped entry must state it: $unspecified",
-            unspecified.isEmpty(),
+            "every declared capacity must be one the table allows: ${declared.distinct()}",
+            declared.all { it in RamTier.capacitiesGiB },
+        )
+    }
+
+    @Test
+    fun `entries with unknown memory are reported rather than silently equal`() {
+        // An unknown capacity must not read as a match. Compatibility returns null for both
+        // "agrees" and "could not tell", and this is where that distinction is checked against
+        // the shipped catalog rather than against a fixture.
+        val catalog = TestCatalog.load()
+        val unknown = catalog.devices.values.filter { it.ramBytes <= 0L }
+        val known = catalog.devices.values.filter { it.ramBytes > 0L }
+        assertTrue("expected some entries to declare memory", known.isNotEmpty())
+        assertTrue(
+            "expected some firmware-derived entries to declare none: " +
+                "${catalog.devices.size} entries, all declared",
+            unknown.isNotEmpty(),
+        )
+        assertNull(
+            "an unknown capacity must produce no verdict, not a passing one",
+            Compatibility.ramIssue(unknown.first(), HandsetFacts(reportedRamBytes = 11L shl 30)),
         )
     }
 

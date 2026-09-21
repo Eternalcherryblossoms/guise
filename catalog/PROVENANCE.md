@@ -13,6 +13,8 @@ one, so an invented value would defeat the purpose of spoofing at all.
 
 | Device | Key | Memory | Verified | Source | Link |
 |---|---|---|---|---|---|
+| blackshark SHARK KSR-A0 | `blackshark_kaiser_a11` | 未知 | **no** | firmware build.prop: blackshark\missi\missi-user-11-KASE2201030CN00MR2-V12.0.1.0.RBHCNBS-release-keys | -- |
+| blackshark SHARK PRS-A0 | `blackshark_penrose_a11` | 未知 | **no** | firmware build.prop: blackshark\penrose\qssi-user-11-PROS2203050CN00MR2-V12.0.1.0.RBICNBS-release-keys | -- |
 | Google Pixel 8a · Android 14 | `google_akita_a14` | 8 GB | yes | Google OTA metadata (post-build / post-security-patch-level), read from the first 2 KB of the shipped OTA zip for AP2A.240905.003.E1 | [evidence](https://dl.google.com/dl/android/aosp/akita-ota-ap2a.240905.003.e1-75b83a74.zip) |
 | Google Pixel 8a · Android 15 | `google_akita_a15` | 8 GB | yes | Google OTA metadata (post-build / post-security-patch-level), read from the first 2 KB of the shipped OTA zip for BP1A.250505.005.B1 | [evidence](https://dl.google.com/dl/android/aosp/akita-ota-bp1a.250505.005.b1-405428be.zip) |
 | Google Pixel 8a · Android 16 | `google_akita_a16` | 8 GB | yes | Google OTA metadata (post-build / post-security-patch-level), read from the first 2 KB of the shipped OTA zip for CP1A.260505.005.A1 | [evidence](https://dl.google.com/dl/android/aosp/akita-ota-cp1a.260505.005.a1-acf38722.zip) |
@@ -66,6 +68,116 @@ one, so an invented value would defeat the purpose of spoofing at all.
 | Google Pixel 8 · Android 15 | `google_shiba_a15` | 8 GB | yes | Google OTA metadata (post-build / post-security-patch-level), read from the first 2 KB of the shipped OTA zip for BP1A.250505.005.B1 | [evidence](https://dl.google.com/dl/android/aosp/shiba-ota-bp1a.250505.005.b1-6214dfec.zip) |
 | Google Pixel 8 · Android 16 | `google_shiba_a16` | 8 GB | yes | Google OTA metadata (post-build / post-security-patch-level), read from the first 2 KB of the shipped OTA zip for CP1A.260505.005.A1 | [evidence](https://dl.google.com/dl/android/aosp/shiba-ota-cp1a.260505.005.a1-7c6aa727.zip) |
 | Google Pixel 8 · Android 17 | `google_shiba_a17` | 8 GB | yes | Google OTA metadata (post-build / post-security-patch-level), read from the first 2 KB of the shipped OTA zip for CP3A.260905.009 | [evidence](https://dl.google.com/dl/android/aosp/shiba-ota-cp3a.260905.009-a24ec200.zip) |
+| Nokia Nokia 8.3 5G | `nokia_bgt_sprout_a12` | 未知 | **no** | firmware build.prop: nokia\bgt_sprout\groot-user-12-SKQ1.210821.001-00WW_3_49F_SP06-release-keys | -- |
+| OnePlus AC2001 | `oneplus_nord_a12` | 未知 | **no** | firmware build.prop: oneplus\nord\qssi-user-12-RKQ1.211119.001-Q.202309140004-release-keys--IN | -- |
+| OnePlus IN2011 | `oneplus_oneplus8_a12` | 未知 | **no** | firmware build.prop: oneplus\oneplus8\qssi-user-12-RKQ1.211119.001-Q.202210172156-release-keys--IN | -- |
+| OnePlus IN2013 | `oneplus_oneplus8_a13` | 未知 | **no** | firmware build.prop: oneplus\oneplus8\qssi-user-13-TP1A.220905.001-1717751483663-release-keys--EUEX | -- |
+| OnePlus IN2025 | `oneplus_oneplus8pro_a12` | 未知 | **no** | firmware build.prop: oneplus\oneplus8pro\qssi-user-12-RKQ1.211119.001-Q.202210170945-release-keys--US | -- |
+| OnePlus IN2023 | `oneplus_oneplus8pro_a13` | 未知 | **no** | firmware build.prop: oneplus\oneplus8pro\qssi-user-13-TP1A.220905.001-1717751483663-release-keys--EUEX | -- |
+| OnePlus KB2005 | `oneplus_oneplus8t_a12` | 未知 | **no** | firmware build.prop: oneplus\oneplus8t\qssi-user-12-RKQ1.211119.001-R.202210170944-release-keys--US | -- |
+| OnePlus KB2001 | `oneplus_oneplus8t_a13` | 未知 | **no** | firmware build.prop: oneplus\oneplus8t\qssi-user-13-TP1A.220905.001-1701693898895-release-keys--IN | -- |
+| OnePlus KB2001 | `oneplus_oneplus8t_a14` | 未知 | **no** | firmware build.prop: oneplus\oneplus8t\qssi-user-14-UKQ1.230924.001-1710927263878-release-keys--IN | -- |
+| OnePlus IN2017 | `oneplus_oneplus8tmo_a12` | 未知 | **no** | firmware build.prop: oneplus\oneplus8tmo\qssi-user-12-RKQ1.211119.001-Q.202207231006-release-keys--P-US-TMOBILE | -- |
+| OnePlus IN2017 | `oneplus_oneplus8tmo_a13` | 未知 | **no** | firmware build.prop: oneplus\oneplus8tmo\qssi-user-13-TP1A.220905.001-1676555181932-release-keys--P-US-TMOBILE | -- |
+| OnePlus KB2007 | `oneplus_oneplus8ttmo_a12` | 未知 | **no** | firmware build.prop: oneplus\oneplus8ttmo\qssi-user-12-RKQ1.211119.001-R.202207281726-release-keys--P-US-TMOBILE | -- |
+| OnePlus KB2007 | `oneplus_oneplus8ttmo_a13` | 未知 | **no** | firmware build.prop: oneplus\oneplus8ttmo\qssi-user-13-TP1A.220905.001-1676555181932-release-keys--P-US-TMOBILE | -- |
+| OnePlus KB2007 | `oneplus_oneplus8ttmo_a14` | 未知 | **no** | firmware build.prop: oneplus\oneplus8ttmo\qssi-user-14-UKQ1.230924.001-1707033719315-release-keys--P-US-TMOBILE | -- |
+| OnePlus LE2113 | `oneplus_oneplus9_a12` | 未知 | **no** | firmware build.prop: oneplus\oneplus9\qssi-user-12-RKQ1.211119.001-R.GDPR.202210251512-release-keys--EUEX | -- |
+| OnePlus LE2115 | `oneplus_oneplus9_a13` | 未知 | **no** | firmware build.prop: oneplus\oneplus9\qssi-user-13-TP1A.220905.001-1704340012175-release-keys--US | -- |
+| OnePlus LE2111 | `oneplus_oneplus9_a14` | 未知 | **no** | firmware build.prop: oneplus\oneplus9\qssi-user-14-UKQ1.230924.001-1705587840531-release-keys--IN | -- |
+| OnePlus LE2121 | `oneplus_oneplus9pro_a12` | 未知 | **no** | firmware build.prop: oneplus\oneplus9pro\qssi-user-12-RKQ1.211119.001-R.202210251512-release-keys--IN | -- |
+| OnePlus LE2121 | `oneplus_oneplus9pro_a13` | 未知 | **no** | firmware build.prop: oneplus\oneplus9pro\qssi-user-13-TP1A.220905.001-1704339955502-release-keys--IN | -- |
+| OnePlus LE2121 | `oneplus_oneplus9pro_a14` | 未知 | **no** | firmware build.prop: oneplus\oneplus9pro\qssi-user-14-UKQ1.230924.001-1718636995726-release-keys--IN | -- |
+| OnePlus LE2127 | `oneplus_oneplus9protmo_a12` | 未知 | **no** | firmware build.prop: oneplus\oneplus9protmo\qssi-user-12-SKQ1.210216.001-R.202203101719-release-keys--P-US-TMOBILE | -- |
+| OnePlus LE2127 | `oneplus_oneplus9protmo_a13` | 未知 | **no** | firmware build.prop: oneplus\oneplus9protmo\qssi-user-13-TP1A.220905.001-1680871653953-release-keys--P-US-TMOBILE | -- |
+| OnePlus LE2127 | `oneplus_oneplus9protmo_a14` | 未知 | **no** | firmware build.prop: oneplus\oneplus9protmo\qssi-user-14-UKQ1.230924.001-1706178772513-release-keys--P-US-TMOBILE | -- |
+| OnePlus LE2101 | `oneplus_oneplus9r_a12` | 未知 | **no** | firmware build.prop: oneplus\oneplus9r\qssi-user-12-RKQ1.211119.001-R.202210172200-release-keys--IN | -- |
+| OnePlus LE2101 | `oneplus_oneplus9r_a13` | 未知 | **no** | firmware build.prop: oneplus\oneplus9r\qssi-user-13-TP1A.220905.001-1706876113536-release-keys--IN | -- |
+| OnePlus LE2101 | `oneplus_oneplus9r_a14` | 未知 | **no** | firmware build.prop: oneplus\oneplus9r\qssi-user-14-UKQ1.230924.001-1717583481724-release-keys--IN | -- |
+| OnePlus LE2117 | `oneplus_oneplus9tmo_a12` | 未知 | **no** | firmware build.prop: oneplus\oneplus9tmo\qssi-user-12-SKQ1.210216.001-R.202203101720-release-keys--P-US-TMOBILE | -- |
+| OnePlus LE2117 | `oneplus_oneplus9tmo_a13` | 未知 | **no** | firmware build.prop: oneplus\oneplus9tmo\qssi-user-13-TP1A.220905.001-1680871701244-release-keys--P-US-TMOBILE | -- |
+| OnePlus EB2101 | `oneplus_oneplusnordce_a12` | 未知 | **no** | firmware build.prop: oneplus\oneplusnordce\qssi-user-12-RKQ1.211119.001-R.202301101727-release-keys--IN | -- |
+| OnePlus EB2101 | `oneplus_oneplusnordce_a13` | 未知 | **no** | firmware build.prop: oneplus\oneplusnordce\qssi-user-13-TP1A.220905.001-1716301029900-release-keys--IN | -- |
+| OnePlus MT2110 | `oneplus_op5154l1_a11` | 未知 | **no** | firmware build.prop: oneplus\op5154l1\qssi-user-11-RKQ1.211119.001-1654535918235-release-keys--ALLNET | -- |
+| OnePlus MT2110 | `oneplus_op5154l1_a12` | 未知 | **no** | firmware build.prop: oneplus\op5154l1\qssi-user-12-RKQ1.211119.001-R.202211021311-release-keys--ALLNET | -- |
+| OnePlus MT2110 | `oneplus_op5154l1_a13` | 未知 | **no** | firmware build.prop: oneplus\op5154l1\qssi-user-13-TP1A.220905.001-1683196675783-release-keys--ALLNET | -- |
+| OnePlus MT2111 | `oneplus_op5155l1_a11` | 未知 | **no** | firmware build.prop: oneplus\op5155l1\qssi-user-11-RKQ1.210614.002-1652622201727-release-keys--IN | -- |
+| OnePlus MT2111 | `oneplus_op5155l1_a12` | 未知 | **no** | firmware build.prop: oneplus\op5155l1\qssi-user-12-RKQ1.211119.001-R.202211021311-release-keys--IN | -- |
+| OnePlus MT2111 | `oneplus_op5155l1_a13` | 未知 | **no** | firmware build.prop: oneplus\op5155l1\qssi-user-13-TP1A.220905.001-1702261969312-release-keys--IN | -- |
+| OnePlus MT2111 | `oneplus_op5155l1_a14` | 未知 | **no** | firmware build.prop: oneplus\op5155l1\qssi-user-14-UKQ1.230924.001-1705587649182-release-keys--IN | -- |
+| OnePlus NE2210 | `oneplus_op516el1_a12` | 未知 | **no** | firmware build.prop: oneplus\op516el1\qssi-user-12-SKQ1.211019.001-S.202206251609-release-keys--ALLNET | -- |
+| OnePlus NE2210 | `oneplus_op516el1_a13` | 未知 | **no** | firmware build.prop: oneplus\op516el1\qssi-user-13-TP1A.220905.001-1681370718266-release-keys--ALLNET | -- |
+| OnePlus NE2210 | `oneplus_op516el1_a14` | 未知 | **no** | firmware build.prop: oneplus\op516el1\qssi-user-14-UKQ1.230924.001-1705998234539-release-keys--ALLNET | -- |
+| OnePlus NE2211 | `oneplus_op516fl1_a12` | 未知 | **no** | firmware build.prop: oneplus\op516fl1\qssi-user-12-SKQ1.211019.001-S.202210191835-release-keys--IN | -- |
+| OnePlus NE2211 | `oneplus_op516fl1_a13` | 未知 | **no** | firmware build.prop: oneplus\op516fl1\qssi-user-13-TP1A.220905.001-1697031492856-release-keys--IN | -- |
+| OnePlus NE2211 | `oneplus_op516fl1_a14` | 未知 | **no** | firmware build.prop: oneplus\op516fl1\qssi-user-14-UKQ1.230924.001-1720063341185-release-keys--IN | -- |
+| OnePlus PGP110 | `oneplus_op5551l1_a12` | 未知 | **no** | firmware build.prop: oneplus\op5551l1\qssi-user-12-SKQ1.220303.001-S.202210142328-release-keys--ALLNET | -- |
+| OnePlus PGP110 | `oneplus_op5551l1_a13` | 未知 | **no** | firmware build.prop: oneplus\op5551l1\qssi-user-13-TP1A.220905.001-1683621306192-release-keys--ALLNET | -- |
+| OnePlus CPH2413 | `oneplus_op5552l1_a12` | 未知 | **no** | firmware build.prop: oneplus\op5552l1\qssi-user-12-SKQ1.220303.001-S.202302091749-release-keys--IN | -- |
+| OnePlus CPH2417 | `oneplus_op5552l1_a13` | 未知 | **no** | firmware build.prop: oneplus\op5552l1\qssi-user-13-TP1A.220905.001-1696831807193-release-keys--US | -- |
+| OnePlus CPH2413 | `oneplus_op5552l1_a14` | 未知 | **no** | firmware build.prop: oneplus\op5552l1\qssi-user-14-UKQ1.230924.001-1719902164128-release-keys--IN | -- |
+| OnePlus PHK110 | `oneplus_op5913l1_a13` | 未知 | **no** | firmware build.prop: oneplus\op5913l1\qssi-user-13-TP1A.220905.001-1683556343392-release-keys--ALLNET | -- |
+| OnePlus PHK110 | `oneplus_op5913l1_a14` | 未知 | **no** | firmware build.prop: oneplus\op5913l1\qssi-user-14-UKQ1.231108.001-1718946436268-release-keys--ALLNET | -- |
+| OnePlus PHB110 | `oneplus_op591bl1_a13` | 未知 | **no** | firmware build.prop: oneplus\op591bl1\qssi-user-13-TP1A.220905.001-1690201378447-release-keys--ALLNET | -- |
+| OnePlus PHB110 | `oneplus_op591bl1_a14` | 未知 | **no** | firmware build.prop: oneplus\op591bl1\qssi-user-14-UKQ1.230924.001-1699668029178-release-keys--ALLNET | -- |
+| OnePlus PJD110 | `oneplus_op5929l1_a14` | 未知 | **no** | firmware build.prop: oneplus\op5929l1\qssi-user-14-UKQ1.231108.001-1717650427600-release-keys--ALLNET | -- |
+| OnePlus PJA110 | `oneplus_op5943l1_a13` | 未知 | **no** | firmware build.prop: oneplus\op5943l1\qssi-user-13-TP1A.220905.001-1699872936493-release-keys--ALLNET | -- |
+| OnePlus PJA110 | `oneplus_op5943l1_a14` | 未知 | **no** | firmware build.prop: oneplus\op5943l1\qssi-user-14-UKQ1.231108.001-1718956598522-release-keys--ALLNET | -- |
+| OnePlus CPH2447 | `oneplus_op594dl1_a13` | 未知 | **no** | firmware build.prop: oneplus\op594dl1\qssi-user-13-TP1A.220905.001-1697035422630-release-keys--IN | -- |
+| OnePlus CPH2447 | `oneplus_op594dl1_a14` | 未知 | **no** | firmware build.prop: oneplus\op594dl1\qssi-user-14-UP1A.231005.007-1716868681220-release-keys--IN | -- |
+| OnePlus CPH2569 | `oneplus_op5953l1_a13` | 未知 | **no** | firmware build.prop: oneplus\op5953l1\qssi-user-13-TP1A.220905.001-1702978952773-release-keys--IN | -- |
+| OnePlus CPH2569 | `oneplus_op5953l1_a14` | 未知 | **no** | firmware build.prop: oneplus\op5953l1\qssi-user-14-UKQ1.230924.001-1713152110588-release-keys--IN | -- |
+| OnePlus CPH2581 | `oneplus_op595dl1_a14` | 未知 | **no** | firmware build.prop: oneplus\op595dl1\qssi_64-user-14-UKQ1.231108.001-1718959536227-release-keys--EUEX | -- |
+| OnePlus CPH2581 | `oneplus_op595dl1_a15` | 未知 | **no** | firmware build.prop: oneplus\op595dl1\qssi_64-user-VanillaIceCream-AP31.240322.016-1715069048138-release-keys--EUEX | -- |
+| OnePlus CPH2487 | `oneplus_op5961l1_a13` | 未知 | **no** | firmware build.prop: oneplus\op5961l1\qssi-user-13-TP1A.220905.001-1699847251272-release-keys--IN | -- |
+| OnePlus CPH2487 | `oneplus_op5961l1_a14` | 未知 | **no** | firmware build.prop: oneplus\op5961l1\qssi-user-14-UKQ1.231108.001-1718946371465-release-keys--IN | -- |
+| OnePlus CPH2551 | `oneplus_op5973l1_a13` | 未知 | **no** | firmware build.prop: oneplus\op5973l1\qssi-user-13-TP1A.220905.001-1705056643759-release-keys--IN | -- |
+| OnePlus CPH2551 | `oneplus_op5973l1_a14` | 未知 | **no** | firmware build.prop: oneplus\op5973l1\qssi-user-14-UKQ1.231108.001-1719235211374-release-keys--IN | -- |
+| OnePlus CPH2551 | `oneplus_op5973l1_a15` | 未知 | **no** | firmware build.prop: oneplus\op5973l1\qssi-user-VanillaIceCream-AP31.240322.016-1714850162968-release-keys--EUEX | -- |
+| OnePlus PJE110 | `oneplus_op5cf9l1_a14` | 未知 | **no** | firmware build.prop: oneplus\op5cf9l1\qssi-user-14-UKQ1.231108.001-1717740969256-release-keys--ALLNET | -- |
+| OnePlus PJF110 | `oneplus_op5cfbl1_a14` | 未知 | **no** | firmware build.prop: oneplus\op5cfbl1\qssi-user-14-UP1A.231005.007-1713532116333-release-keys--ALLNET | -- |
+| OnePlus CPH2585 | `oneplus_op5d35l1_a14` | 未知 | **no** | firmware build.prop: oneplus\op5d35l1\qssi-user-14-UKQ1.231108.001-1718951488312-release-keys--IN | -- |
+| OnePlus OPD2404 | `oneplus_op5d77l1_a14` | 未知 | **no** | firmware build.prop: oneplus\op5d77l1\qssi-user-14-UKQ1.231108.001-1719046746284-release-keys--ALLNET | -- |
+| OPPO PDEM30 | `oppo_op4a7a_a13` | 未知 | **no** | firmware build.prop: oppo\op4a7a\qssi-user-13-TP1A.220905.001-1672317808229-release-keys--ALLNET | -- |
+| OPPO PEUM00 | `oppo_op4e75l1_a13` | 未知 | **no** | firmware build.prop: oppo\op4e75l1\qssi-user-13-TP1A.220905.001-1694594759862-release-keys--ALLNET | -- |
+| OPPO PEUM00 | `oppo_op4e75l1_a14` | 未知 | **no** | firmware build.prop: oppo\op4e75l1\qssi-user-14-UP1A.230620.001-1699540788095-release-keys--ALLNET | -- |
+| OPPO PENM00 | `oppo_op4ec1_a13` | 未知 | **no** | firmware build.prop: oppo\op4ec1\qssi-user-13-TP1A.220905.001-1705910685312-release-keys--ALLNET | -- |
+| OPPO PFEM10 | `oppo_op5209l1_a13` | 未知 | **no** | firmware build.prop: oppo\op5209l1\qssi-user-13-TP1A.220905.001-1675751356802-release-keys--ALLNET | -- |
+| OPPO PFJM10 | `oppo_op5227_a13` | 未知 | **no** | firmware build.prop: oppo\op5227\qssi-user-13-TP1A.220905.001-1704266321110-release-keys--ALLNET | -- |
+| OPPO PGAM10 | `oppo_op5285_a12` | 未知 | **no** | firmware build.prop: oppo\op5285\qssi-user-12-SKQ1.220303.001-S.202211092137-release-keys--ALLNET | -- |
+| OPPO PGEM10 | `oppo_op528bl1_a13` | 未知 | **no** | firmware build.prop: oppo\op528bl1\qssi-user-13-TP1A.220905.001-1682431598665-release-keys--ALLNET | -- |
+| OPPO CPH2305 | `oppo_op52d1l1_a13` | 未知 | **no** | firmware build.prop: oppo\op52d1l1\qssi-user-13-TP1A.220905.001-1686104511579-release-keys--EUEX | -- |
+| OPPO PGU110 | `oppo_op55f1l1_a13` | 未知 | **no** | firmware build.prop: oppo\op55f1l1\qssi-user-13-TP1A.220905.001-1677685266867-release-keys--ALLNET | -- |
+| OPPO PHN110 | `oppo_op55f3l1_a13` | 未知 | **no** | firmware build.prop: oppo\op55f3l1\qssi-user-13-TP1A.220905.001-1702302496807-release-keys--ALLNET | -- |
+| OPPO PHM110 | `oppo_op5627_a13` | 未知 | **no** | firmware build.prop: oppo\op5627\qssi-user-13-TP1A.220905.001-1670508053718-release-keys--ALLNET | -- |
+| OPPO PHU110 | `oppo_op564b_a13` | 未知 | **no** | firmware build.prop: oppo\op564b\qssi-user-13-TP1A.220905.001-1685116545980-release-keys--ALLNET | -- |
+| OPPO PHY110 | `oppo_op565fl1_a14` | 未知 | **no** | firmware build.prop: oppo\op565fl1\qssi-user-14-UP1A.231005.007-1715598237289-release-keys--ALLNET | -- |
+| OPPO PHY120 | `oppo_op5660l1_a14` | 未知 | **no** | firmware build.prop: oppo\op5660l1\qssi-user-14-UP1A.231005.007-1717069070983-release-keys--ALLNET | -- |
+| OPPO CPH2499 | `oppo_op56bbl1_a13` | 未知 | **no** | firmware build.prop: oppo\op56bbl1\qssi-user-13-TP1A.220905.001-1700752315307-release-keys--TW | -- |
+| realme RMX3551 | `realme_re5465_a13` | 未知 | **no** | firmware build.prop: realme\re5465\qssi-user-13-TP1A.220905.001-1697183167212-release-keys--ALLNET | -- |
+| realme RMX3551 | `realme_re5465_a14` | 未知 | **no** | firmware build.prop: realme\re5465\qssi-user-14-UKQ1.230924.001-1710297164930-release-keys--ALLNET | -- |
+| realme RMX3370 | `realme_re5473_a13` | 未知 | **no** | firmware build.prop: realme\re5473\qssi-user-13-TP1A.220905.001-1677509072380-release-keys--ALLNET | -- |
+| realme RMX3300 | `realme_re547f_a14` | 未知 | **no** | firmware build.prop: realme\re547f\qssi-user-UpsideDownCake-UP1A.230407.001-1686004135743-release-keys--ALLNET | -- |
+| realme RMX3360 | `realme_re54abl1_a12` | 未知 | **no** | firmware build.prop: realme\re54abl1\qssi-user-12-RKQ1.210503.001-R.202209280247-release-keys--IN | -- |
+| realme RMX3360 | `realme_re54abl1_a13` | 未知 | **no** | firmware build.prop: realme\re54abl1\qssi-user-13-TP1A.220905.001-1711616484204-release-keys--IN | -- |
+| realme RMX3461 | `realme_re54bfl1_a12` | 未知 | **no** | firmware build.prop: realme\re54bfl1\qssi-user-12-RKQ1.210503.001-R.202210211219-release-keys--IN | -- |
+| realme RMX3461 | `realme_re54bfl1_a13` | 未知 | **no** | firmware build.prop: realme\re54bfl1\qssi-user-13-TP1A.220905.001-1710908105790-release-keys--IN | -- |
+| realme RMX3371 | `realme_re54e4l1_a12` | 未知 | **no** | firmware build.prop: realme\re54e4l1\qssi-user-12-RKQ1.211119.001-S.GDPR.c35089-c4-3b2e7-release-keys--EUEX | -- |
+| realme RMX3371 | `realme_re54e4l1_a13` | 未知 | **no** | firmware build.prop: realme\re54e4l1\qssi-user-13-TP1A.220905.001-1681284588184-release-keys--ID | -- |
+| realme RMX3700 | `realme_re585f_a13` | 未知 | **no** | firmware build.prop: realme\re585f\qssi-user-13-TP1A.220905.001-1680515081092-release-keys--ALLNET | -- |
+| realme RMX3708 | `realme_re5860_a13` | 未知 | **no** | firmware build.prop: realme\re5860\qssi-user-13-TP1A.220905.001-1675498210030-release-keys--ALLNET | -- |
+| realme RMX3312 | `realme_re58b2l1_a12` | 未知 | **no** | firmware build.prop: realme\re58b2l1\qssi-user-12-RKQ1.211119.001-S.202209161126-release-keys--IN | -- |
+| realme RMX3312 | `realme_re58b2l1_a13` | 未知 | **no** | firmware build.prop: realme\re58b2l1\qssi-user-13-TP1A.220905.001-1673407054945-release-keys--IN | -- |
+| realme RMX3701 | `realme_re58d1l1_a14` | 未知 | **no** | firmware build.prop: realme\re58d1l1\qssi-user-14-UKQ1.230924.001-1705483727052-release-keys--MEA | -- |
+| realme RMX3823 | `realme_re5c33_a13` | 未知 | **no** | firmware build.prop: realme\re5c33\qssi-user-13-TP1A.220905.001-1693825106413-release-keys--ALLNET | -- |
+| realme RMX3888 | `realme_re5c37_a14` | 未知 | **no** | firmware build.prop: realme\re5c37\qssi-user-14-UP1A.231005.007-1715694413047-release-keys--ALLNET | -- |
+| realme RMX3850 | `realme_re5c39l1_a14` | 未知 | **no** | firmware build.prop: realme\re5c39l1\qssi-user-14-UP1A.231005.007-1714124892230-release-keys--ALLNET | -- |
+| realme RMX3852 | `realme_re5c46l1_a14` | 未知 | **no** | firmware build.prop: realme\re5c46l1\qssi-user-14-UP1A.231005.007-1715010135425-release-keys--ALLNET | -- |
+| realme RMX3853 | `realme_re606fl1_a14` | 未知 | **no** | firmware build.prop: realme\re606fl1\qssi_64-user-14-UP1A.231005.007-1718122606118-release-keys--IN | -- |
+| realme RMX3370 | `realme_re879al1_a13` | 未知 | **no** | firmware build.prop: realme\re879al1\qssi-user-13-TP1A.220905.001-1693477494904-release-keys--IN | -- |
+| realme RMX3301 | `realme_red8acl1_a13` | 未知 | **no** | firmware build.prop: realme\red8acl1\qssi-user-13-SKQ1.220519.001-S.b0b271-1277-158b7-release-keys--IN | -- |
+| realme RMX3301 | `realme_red8acl1_a14` | 未知 | **no** | firmware build.prop: realme\red8acl1\qssi-user-14-UKQ1.230924.001-1703251726550-release-keys--IN | -- |
+| realme RMX2202 | `realme_rmx2202cn_a13` | 未知 | **no** | firmware build.prop: realme\rmx2202cn\qssi-user-13-TP1A.220905.001-1707040506622-release-keys--ALLNET | -- |
 | Redmi K40 / POCO F3 | `xiaomi_alioth` | 6 GB | **no** | Hand-entered from MIUI release notes and the device's published ROM (MIUI 12.5.6.0.RKHCNXM on Android 11). Not verified against the build itself. | [evidence](https://xiaomifirmwareupdater.com/) |
 | Xiaomi 12 | `xiaomi_cupid` | 8 GB | **no** | Hand-entered from MIUI release notes and the device's published ROM (MIUI 13.0.5.0.SLCCNXM on Android 12). Not verified against the build itself. | [evidence](https://xiaomifirmwareupdater.com/) |
 | Xiaomi 13 | `xiaomi_fuxi` | 8 GB | **no** | Hand-entered from MIUI release notes and the device's published ROM (MIUI 14.0.2.0.TMCCNXM on Android 13). Not verified against the build itself. | [evidence](https://xiaomifirmwareupdater.com/) |
@@ -76,7 +188,7 @@ one, so an invented value would defeat the purpose of spoofing at all.
 | Xiaomi Mi 11 | `xiaomi_venus` | 8 GB | **no** | Hand-entered from MIUI release notes and the device's published ROM (MIUI 13.0.4.0.SKBCNXM on Android 12). Not verified against the build itself. | [evidence](https://xiaomifirmwareupdater.com/) |
 | Redmi Note 11T Pro | `xiaomi_xaga` | 12 GB | yes | Captured on the author's own handset: Redmi Note 11T Pro (xaga), Android 14 (HyperOS), values read from Build.* on the device. | -- |
 
-**8 of 62 entries are unverified.** They were
+**120 of 174 entries are unverified.** They were
 entered by hand from published specifications and nobody has re-checked them
 against the builds they claim to be. Treat their fingerprints as plausible
 rather than confirmed.

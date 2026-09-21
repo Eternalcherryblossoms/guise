@@ -100,14 +100,29 @@ data class RuntimeVersion(
  * Screen characteristics.
  *
  * These belong to a concrete device, not to a SoC, so they live on [DeviceProfile].
+ *
+ * **Zero means unknown**, and unknown is a legitimate state rather than a gap to be filled. A
+ * firmware's `build.prop` carries `ro.sf.lcd_density` but not the panel resolution, so a catalog
+ * built from real firmware dumps knows the density and genuinely cannot know the resolution.
+ * The alternative -- inventing one -- would put a fabricated value into a profile whose whole
+ * purpose is to be self-consistent, and the values are close to inert anyway:
+ * [io.guise.xposed.channel.DisplayChannel] rewrites density only when the user explicitly pins it
+ * per app, and never rewrites geometry at all.
  */
 @Serializable
 data class DisplayProfile(
-    @SerialName("widthPx") val widthPx: Int,
-    @SerialName("heightPx") val heightPx: Int,
-    @SerialName("densityDpi") val densityDpi: Int,
-    @SerialName("refreshRates") val refreshRates: List<Float> = listOf(60f),
-)
+    @SerialName("widthPx") val widthPx: Int = 0,
+    @SerialName("heightPx") val heightPx: Int = 0,
+    @SerialName("densityDpi") val densityDpi: Int = 0,
+    /**
+     * Empty when unknown. Notably *not* defaulted to 60 Hz: a refresh rate that was never read
+     * is a claim, and this project would rather report nothing than report a plausible guess.
+     */
+    @SerialName("refreshRates") val refreshRates: List<Float> = emptyList(),
+) {
+    /** True when nothing about the panel is known. */
+    val isUnknown: Boolean get() = widthPx <= 0 && heightPx <= 0 && densityDpi <= 0
+}
 
 /**
  * Everything that follows from the chip, not from the handset.
@@ -271,8 +286,17 @@ data class DeviceProfile(
         if (socKey.isBlank()) add("socKey is blank")
         if (sdkInt !in 27..40) add("sdkInt $sdkInt outside the supported range 27..40")
         if (buildIncremental.isBlank()) add("buildIncremental is blank (fingerprint would be malformed)")
-        if (display.widthPx <= 0 || display.heightPx <= 0) add("display size must be positive")
-        if (display.densityDpi <= 0) add("display densityDpi must be positive")
+        // Zero is "unknown" and allowed; negative is a bug. Resolution is either known on both
+        // axes or on neither -- a width without a height is not a panel that exists.
+        if (display.widthPx < 0 || display.heightPx < 0 || display.densityDpi < 0) {
+            add("display values must not be negative")
+        }
+        if ((display.widthPx > 0) != (display.heightPx > 0)) {
+            add(
+                "display resolution must be known on both axes or neither, got " +
+                    "${display.widthPx}x${display.heightPx}",
+            )
+        }
         if (fingerprint.count { it == ':' } != 2) {
             add("fingerprint must contain exactly two ':' separators, got: $fingerprint")
         }

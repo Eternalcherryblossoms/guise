@@ -94,17 +94,26 @@ Guise 的做法不同：
 
 ### 机型库
 
-内置 **62 个档案 / 11 个 SoC / Android 11–17**，其中 **53 个直接从 Google 官方 OTA 元数据读出**（不是转录）。
+内置 **174 个档案 / 11 个 SoC / Android 11–17**，全部来自真实构建数据，没有一条是编的：
+
+| 来源 | 条数 | 怎么来的 |
+|---|---|---|
+| Google 官方 OTA 元数据 | 53 | 直接读 OTA 包头部 2 KB 里的 `post-build`（第一手） |
+| 固件 `build.prop` 转储 | 112 | 厂商固件里自己的属性（第三方提取） |
+| 手工录入 | 9 | 早期条目 |
 
 每个档案是「一台机型 + 一个 Android 版本 + 一个内存配置」：
 
 - **一个版本一个档案** —— 构建号属于唯一一个 Android 版本。`alignToRelease` 只能修版本代号，构建号里的**日期**和安全补丁仍然属于它们出厂的那个年代——把 Android 12 的档案穿在 Android 16 上，描述的是一台从没出厂过的机器。所以分开成档案，管理端也会直接告诉你哪些不相容。
 - **一个内存配置一个档案** —— 内存不出现在任何构建产物里，所以同一机型的不同内存版本**共用同一份构建**，只有标称容量不同。
-- **抓取本机** —— 从真实设备读取全部字段生成档案，100% 准确，且记录的 RAM 也是真的。
+- **内存可以「未知」** —— 固件属性里根本没有内存。这不影响伪装：**内存不是被上报的值，而是相容性约束**，任何一层都改不了它，所以「不声明」不等于「声明错了」。少掉的只是预筛选时的告警。密度同理（能从 `ro.sf.lcd_density` 拿到就带上，拿不到就留空，不猜）。
+- **抓取本机** —— 从真实设备读取全部字段生成档案，100% 准确，记录的 RAM 也是真的。
 
-数据来源与逐条出处见 [`catalog/PROVENANCE.md`](catalog/PROVENANCE.md)（生成物）。每一条都写明来源，并标注**是否经过核实**：62 条里 8 条未核实。**这不是形式主义**——凭空编的 build ID 会造出「世界上只有你有」的指纹，比用一个常见的真指纹更显眼。
+数据来源与逐条出处见 [`catalog/PROVENANCE.md`](catalog/PROVENANCE.md)（生成物）。每一条都写明来源，并标注**是否经过核实**：174 条里 120 条未核实——它们读自真实固件，但经的是第三方提取而非厂商自己的渠道，PROVENANCE 里明确区分这两类。**这不是形式主义**——凭空编的 build ID 会造出「世界上只有你有」的指纹，比用一个常见的真指纹更显眼。
 
-机型库是**生成**的，不是手写的，见「从源码构建」。生成器会打印还有哪些覆盖空洞：目前 **8 个「内存档 × 版本」格子是空的**，其中 `16 GB / Android 16` 一台可穿的都没有。
+机型库是**生成**的，不是手写的（见「从源码构建」），并且**支持远程更新**（见「下载与更新」）。生成器会打印还有哪些覆盖空洞：目前 **8 个「内存档 × 版本」格子是空的**，其中 `16 GB / Android 16` 一台可穿的都没有。
+
+**为什么不是更多**：还有 2,957 个固件转储被拒收，原因只有一个——它们的芯片不在表里，而 **GPU renderer 字符串不存在于任何已发布文件里**（`glGetString(GL_RENDERER)` 是驱动在运行时回答的）。一个 SoC 条目只能靠在真机上跑过一次来创建。生成器把这批芯片按出现次数列出来（`msmnile` 274、`holi` 213、`sm6150` 194……），而不是假装它们不存在。
 
 ### 诊断探针（独立应用）
 
@@ -225,20 +234,44 @@ git tag v5.2.0 && git push origin v5.2.0
 
 ### 机型库是生成出来的，不是手写的
 
-`xposed/src/main/assets/catalog.json` **由 `:catalog-gen` 从 `catalog/seed/corpus.json` 生成**。改机型库请改种子文件，然后重新生成：
+`xposed/src/main/assets/catalog.json` **由 `:catalog-gen` 从 `catalog/seed/` 生成**。改机型库请改种子文件，然后重新生成：
 
 ```bash
 ./gradlew :catalog-gen:run --args="--write"    # 重新生成
 ./gradlew :catalog-gen:run --args="--check"    # CI 的门禁：对不上就红
 ```
 
+**两半式流水线**：抓取与生成分开。联网/批量的一半是独立任务，产出提交进仓库的快照；生成器本身**永远离线、确定性**——所以 `--check` 才有意义，所以没有网络也能复现整个机型库。
+
+```bash
+# 第一半（需要网络 / 需要语料库，手动跑）
+./gradlew :catalog-gen:fetchPixel -Pproxy=host:port          # → catalog/raw/pixel-ota.json
+./gradlew :catalog-gen:extractBuildProps -Pargs="--dir <语料库> --override kona=sm8250,taro=sm8450"
+                                                             # → catalog/raw/buildprops.json
+# 第二半（永远离线）
+./gradlew :catalog-gen:run --args="--write"
+```
+
 生成器有三道**不可跳过**的闸：
 
 1. **每条都必须交代出处**（`source` 字段）。凭空的 build ID 会造出「世界上只有你有」的指纹，比用一个常见的真指纹**更**显眼——所以这一条是硬性的。
-2. **过 `:core` 的同一套一致性校验器**（就是那 46 个测试用的那套）。生成器不带自己的规则副本——否则它会用自己的错误规则给自己的错误放行。
+2. **过 `:core` 的同一套一致性校验器**（就是那 64 个测试用的那套）。生成器不带自己的规则副本——否则它会用自己的错误规则给自己的错误放行。
 3. **覆盖策略**：必须覆盖的内存档位写进 `policy`；暂时覆盖不了的要带**书面理由**豁免；故意不管的也要写理由。设备数量不是指标——「14 台设备只覆盖 2 个内存档」正是这个指标被发明出来的原因。
 
 每条目的出处汇总在 `catalog/PROVENANCE.md`（同样是生成的），里面会明确写出**有多少条是未经核实的**。
+
+### 远程机型库更新
+
+机型库可以**不发版就更新**：CI 把 `catalog.json` 作为 release 附件发布，文件名是 `catalog-<sha256>.json`——**完整摘要写在文件名里**，所以客户端不需要再取一份清单来信任，也不可能把半个下载当成机型库。
+
+四道闸，任何一道不过就**拒绝整份**、继续用内置那份：
+
+1. 文件名里的 SHA-256 与下载到的字节重新计算的摘要必须一致；
+2. 格式版本必须被本版本理解（更新的格式可能带来本版本会读错的字段，而读错一个设备身份比留在旧数据上更糟）；
+3. 整份机型库必须通过**同一套一致性校验器**——不是「大体没问题」，因为一条自相矛盾的条目就是一个观察者能抓住的指纹；
+4. 先写文件、后写描述符；而读取时先看描述符、再开文件。所以写到一半失败留下的描述符指向的是上一份机型库，哈希对不上。
+
+三个来源通过 `:core` 里**同一个函数**合并，管理端和注入进程各调一次同一个实现——两份实现会漂移，而漂移的症状是「选择页提供了注入进程从没听说过的档案」。
 
 ## 项目结构
 
@@ -401,8 +434,13 @@ apps you never meant to touch.
 
 ### Device catalog
 
-**62 profiles across 11 SoCs and Android 11-17**, of which **53 are read directly from Google's own
-OTA metadata** rather than transcribed.
+**174 profiles across 11 SoCs and Android 11-17**, every one built from real build data:
+
+| Source | Count | How |
+|---|---|---|
+| Google's own OTA metadata | 53 | read from `post-build` in the first 2 KB of the shipped OTA zip (first-party) |
+| Firmware `build.prop` dumps | 112 | the vendor's own properties, via a third party's extraction |
+| Hand-entered | 9 | early entries |
 
 One profile is "one model + one Android release + one memory configuration":
 
@@ -413,16 +451,29 @@ One profile is "one model + one Android release + one memory configuration":
   ones do not fit.
 - **One entry per memory configuration.** Memory appears in no build artifact, so two memory SKUs
   of one model share a build byte for byte and differ only in nominal capacity.
+- **Memory may be unknown.** A firmware's properties state no memory at all, and that costs
+  nothing: `ramBytes` is a *compatibility constraint, not a reported value* -- no layer can spoof
+  physical memory, so declining to claim a capacity claims nothing false. Only the picker's
+  warning is lost. Density is the same: taken from `ro.sf.lcd_density` when the firmware sets it,
+  left empty otherwise rather than inferred.
 - **Capture this device** -- reads every field from the real handset, including its memory.
 
 Per-entry provenance is in [`catalog/PROVENANCE.md`](catalog/PROVENANCE.md), which states its
-source and whether it is **verified**: 8 of the 62 are not. This is not bookkeeping -- an invented
-build ID yields a fingerprint matching no shipped handset, and unique is more conspicuous than
-common.
+source and whether it is **verified**: 120 of the 174 are not. They are read from real firmware,
+but through a third party's extraction rather than the vendor's own channel, and that file draws
+the distinction. It is not bookkeeping -- an invented build ID yields a fingerprint matching no
+shipped handset, and unique is more conspicuous than common.
 
-The catalog is **generated, not written**; see "Building from source". The generator also prints
-the coverage holes: **8 (memory tier x release) cells are still empty**, including
-`16 GB / Android 16`, for which no profile fits at all.
+The catalog is **generated, not written** (see "Building from source") and **can be refreshed
+without shipping an APK** (see "Download and updates"). The generator also prints the coverage
+holes: **8 (memory tier x release) cells are still empty**, including `16 GB / Android 16`, for
+which no profile fits at all.
+
+**Why not more:** 2,957 further firmware dumps were rejected for exactly one reason -- their chip
+is not in the table, and the **GPU renderer string exists in no published file**, because
+`glGetString(GL_RENDERER)` is answered by the driver at runtime. An SoC entry can only be created
+by running on one of the chips. The generator lists those chips by frequency (`msmnile` 274,
+`holi` 213, `sm6150` 194, ...) rather than pretending they are not there.
 
 ### The probe (a separate app)
 

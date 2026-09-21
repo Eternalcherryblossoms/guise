@@ -39,18 +39,34 @@ object Generator {
         val notes: List<String>,
     )
 
-    fun generate(corpus: SeedCorpus, pixel: PixelSource.Result = PixelSource.Result()): Output {
+    fun generate(
+        corpus: SeedCorpus,
+        pixel: PixelSource.Result = PixelSource.Result(),
+        buildProps: BuildPropSource.Result = BuildPropSource.Result(),
+    ): Output {
         val errors = mutableListOf<String>()
         val notes = mutableListOf<String>()
 
         // Fetched builds become entries here, combined with the hand-maintained per-model facts a
         // build cannot supply. One entry per (device, release, memory) -- see PixelSource for why
         // the release is part of the identity rather than a detail.
-        val allSeeds = corpus.devices + pixel.seeds
+        val allSeeds = corpus.devices + pixel.seeds + buildProps.seeds
         if (pixel.seeds.isNotEmpty()) {
             notes += "${pixel.seeds.size} entries generated from ${pixel.buildsAvailable} fetched " +
                 "Pixel builds across " +
                 "${pixel.seeds.map { it.profile.product }.distinct().size} models"
+        }
+        if (buildProps.seeds.isNotEmpty()) {
+            notes += "${buildProps.seeds.size} entries generated from " +
+                "${buildProps.considered} firmware builds across " +
+                "${buildProps.seeds.map { it.profile.device }.distinct().size} devices; " +
+                "${buildProps.unknownMemory} declare no memory (not in any build.prop, and " +
+                "physical memory is not spoofable, so nothing is claimed either way) and " +
+                "${buildProps.unknownResolution} have no density in their props"
+            if (buildProps.skippedKnownDevices > 0) {
+                notes += "${buildProps.skippedKnownDevices} firmware builds were skipped because " +
+                    "a first-party source already covers that device"
+            }
         }
         if (pixel.unusable.isNotEmpty()) {
             val described = pixel.unusable.filter { it.second.contains("no usable build") }

@@ -85,6 +85,25 @@ private fun loadPixel(root: File): PixelSource.Result {
     return PixelSource.seeds(PixelSource.load(snapshot), table.models)
 }
 
+/**
+ * Firmware-derived builds, with first-party coverage excluded.
+ *
+ * Deliberately not an error when the snapshot is missing: a checkout without `catalog/raw/`
+ * generates from the seed alone and says so, which is what keeps `--check` meaningful offline.
+ * When it is present, devices the Pixel source already covers are dropped -- the vendor's own OTA
+ * metadata is strictly better evidence than a third party's extraction of the same build, and
+ * dropping them is also what keeps the profile keys unique.
+ */
+private fun loadBuildProps(root: File, pixel: PixelSource.Result): BuildPropSource.Result {
+    val snapshot = File(root, BuildPropSource.SNAPSHOT_PATH)
+    if (!snapshot.exists()) {
+        println("no firmware snapshot at ${snapshot.path}; generating without it")
+        return BuildPropSource.Result()
+    }
+    val firstParty = pixel.seeds.map { it.profile.device }.toSet()
+    return BuildPropSource.seeds(BuildPropSource.load(snapshot), excludeDevices = firstParty)
+}
+
 private fun adopt(seedFile: File, catalogFile: File) {
     if (!catalogFile.exists()) {
         System.err.println("nothing to adopt: ${catalogFile.path} does not exist")
@@ -118,7 +137,8 @@ private fun adopt(seedFile: File, catalogFile: File) {
 }
 
 private fun write(root: File, seedFile: File, catalogFile: File, provenanceFile: File) {
-    val output = report(loadSeed(seedFile), loadPixel(root))
+    val pixel = loadPixel(root)
+    val output = report(loadSeed(seedFile), pixel, loadBuildProps(root, pixel))
     if (output.errors.isNotEmpty()) {
         System.err.println("\nrefusing to write: the seed corpus does not pass its own gates")
         exitProcess(1)
@@ -132,7 +152,8 @@ private fun write(root: File, seedFile: File, catalogFile: File, provenanceFile:
 }
 
 private fun check(root: File, seedFile: File, catalogFile: File) {
-    val output = report(loadSeed(seedFile), loadPixel(root))
+    val pixel = loadPixel(root)
+    val output = report(loadSeed(seedFile), pixel, loadBuildProps(root, pixel))
     if (output.errors.isNotEmpty()) exitProcess(1)
 
     if (!catalogFile.exists()) {
@@ -161,8 +182,8 @@ private fun check(root: File, seedFile: File, catalogFile: File) {
     println("\ncatalog matches the seed")
 }
 
-private fun report(corpus: SeedCorpus, pixel: PixelSource.Result): Generator.Output {
-    val output = Generator.generate(corpus, pixel)
+private fun report(corpus: SeedCorpus, pixel: PixelSource.Result, buildProps: BuildPropSource.Result): Generator.Output {
+    val output = Generator.generate(corpus, pixel, buildProps)
     println(
         "generated ${output.catalog.devices.size} devices over ${output.catalog.socs.size} SoCs; " +
             "memory tiers ${output.catalog.coveredRamGiB().joinToString(", ")}",

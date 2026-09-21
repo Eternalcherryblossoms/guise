@@ -192,6 +192,78 @@ it is still unserved. The generator prints the list rather than a total.
 
 ---
 
+## The corpus that is not a corpus
+
+A second source was measured rather than assumed: `tadiphone-buildprop-archive`, a collection of
+firmware `build.prop` files from public device dumps. The first look at it was wrong in a way
+worth recording, because the wrong version of the numbers was the more attractive one.
+
+**Read only the `system` partition and the source looks dead.** Of 4,701
+`system.system.build.prop` files, 250 carried `ro.build.fingerprint` and **9** carried
+`ro.board.platform`. On that basis the archive is useless.
+
+**Read every partition and it looks healthy.** Properties are split across partitions by design:
+the fingerprint lives in `system`, the platform in `vendor` or `odm`. Merging all 42,287 prop
+files first, and grouping them into the 5,085 dumps they came from, gives **1,487 dumps with a
+fingerprint and 1,419 with a platform** as well. The lesson is not "look harder"; it is that a
+per-partition file format cannot be sampled by filename, and the first measurement was of the
+sampling, not of the corpus.
+
+### What it yielded, and why it stopped there
+
+Of those 1,419, **598 resolve to an SoC already in the table** and become entries -- 112 profiles
+after collapsing to one per (device, release), covering 67 devices. The other **2,957 were
+rejected for exactly one reason**, and it is the same reason the Pixel source stops at twelve
+models:
+
+> **The GPU renderer string exists in no published file.**
+
+`glGetString(GL_RENDERER)` is answered by the driver at runtime. A `build.prop` states a platform
+codename (`msmnile`, `holi`, `sm6150`, `bengal`, `mt6765`, ...) and nothing about what the silicon
+reports when asked. An SoC entry can therefore only be created by running on one of the chips.
+That is not a data-acquisition problem that more scraping solves; it is a property of where the
+value lives. The rejected platforms are printed by frequency rather than dropped quietly, because
+that list *is* the work remaining, and it is the set a contributor with the hardware could close.
+
+### What the source cannot say, and why that is allowed
+
+Memory, panel resolution and the GPU renderer are all absent from every `build.prop`. Memory and
+resolution are left **unknown** rather than filled in, which required relaxing two earlier
+decisions:
+
+- `DisplayProfile` used to require positive width, height and density. A firmware states density
+  (`ro.sf.lcd_density`, present for 4,004 dumps) and never states resolution, so "known density,
+  unknown panel" is a legitimate state. Zero now means unknown, resolution must be known on both
+  axes or neither, and `DisplayChannel` already did the right thing -- it never rewrites geometry
+  and skips density when the value is not positive.
+- A test asserted that *every* bundled entry declares memory. That was right while every entry was
+  hand-entered from a spec sheet and wrong once most entries come from firmware. The invariant
+  that actually matters is that **no handset configuration is left without an entry it can be
+  checked against** -- which is tier coverage, and it is asserted instead.
+
+Unknown memory sounds like a gap and is not one, for the reason this file already established:
+`ramBytes` is a compatibility constraint and never a reported value, and physical memory cannot be
+spoofed by any layer. A profile that declines to claim a capacity claims nothing false; the module
+reports the real figure either way. What is lost is the picker's *warning*, which is why
+`Compatibility` returns null for "unknown" and not for "agrees" -- the distinction that has now
+paid for itself twice.
+
+### The measure that keeps being wrong
+
+| Measure | What it said | What was true |
+|---|---|---|
+| 14 devices | a catalog | two memory tiers |
+| 4 memory tiers covered | full coverage | a 16 GB phone on Android 16 had nothing |
+| 62 profiles | a catalog | 30 models with real builds and no entry |
+| 5,085 firmware dumps | a corpus | 250 fingerprints, until every partition was read |
+| 1,419 usable dumps | 1,419 devices | 67 distinct devices across 598 builds |
+
+Every one of those numbers was true and none of them meant what it looked like. The pattern is
+consistent enough to be the rule: **count the thing the user experiences** -- can a handset in
+this configuration wear a profile -- and print the list of failures, not the total of successes.
+
+---
+
 ## The one boundary the privacy layer cannot cross
 
 Emptied data sources cover every domain backed by a **content provider** -- contacts, call log,
