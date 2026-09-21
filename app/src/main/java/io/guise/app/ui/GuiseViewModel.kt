@@ -22,6 +22,7 @@ import io.guise.core.profile.DeviceProfile
 import io.guise.core.profile.EffectiveProfile
 import io.guise.core.profile.FieldKey
 import io.guise.core.profile.RuntimeVersion
+import io.guise.core.privacy.PrivacyDomain
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
 
@@ -241,6 +242,26 @@ class GuiseViewModel(app: Application) : AndroidViewModel(app) {
             "已启用编解码器过滤：将隐藏与档案芯片不符的厂商前缀。若目标应用出现播放异常，请关闭此项。"
         } else {
             "已关闭编解码器过滤"
+        }
+    }
+
+    /**
+     * Empty one class of user data for this target.
+     *
+     * The permission is not touched. The user grants it normally, the app passes its own gate,
+     * and then queries a provider that returns no rows -- see PrivacyDomain for why that
+     * distinction is the point rather than a shortcut.
+     */
+    fun setPrivacyDomain(packageName: String, domain: PrivacyDomain, enabled: Boolean) {
+        val target = config.target(packageName) ?: return
+        val emptied = target.emptiedDomains.toMutableSet()
+        if (enabled) emptied.add(domain.id) else emptied.remove(domain.id)
+        configRepo.upsert(target.copy(emptiedDomains = emptied))
+        config = configRepo.config.value
+        message = if (enabled) {
+            "已清空${domain.label}：应用仍认为自己有权限，但会读到 0 条数据"
+        } else {
+            "已恢复${domain.label}"
         }
     }
 

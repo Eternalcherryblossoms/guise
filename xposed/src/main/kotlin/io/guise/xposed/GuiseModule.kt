@@ -13,6 +13,7 @@ import io.guise.xposed.channel.Channel
 import io.guise.xposed.channel.DisplayChannel
 import io.guise.xposed.channel.GpuChannel
 import io.guise.xposed.channel.MediaCodecChannel
+import io.guise.xposed.channel.PrivacyChannel
 import io.guise.xposed.channel.SettingsChannel
 import io.guise.xposed.channel.SystemPropertyChannel
 import io.guise.xposed.channel.TelephonyChannel
@@ -50,6 +51,8 @@ class GuiseModule : XposedModule() {
         DisplayChannel(),
         // Opt-in per target: see the class comment for why filtering codecs is not free.
         MediaCodecChannel(),
+        // Answers configured content providers with nothing. Never touches permissions.
+        PrivacyChannel(),
     )
 
     /** Packages already handled in this process; a process may host several. */

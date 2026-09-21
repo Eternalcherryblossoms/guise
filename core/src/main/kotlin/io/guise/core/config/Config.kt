@@ -3,6 +3,7 @@ package io.guise.core.config
 import io.guise.core.profile.DeviceCatalog
 import io.guise.core.profile.EffectiveProfile
 import io.guise.core.profile.RuntimeVersion
+import io.guise.core.privacy.PrivacyDomain
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
@@ -40,6 +41,19 @@ data class TargetConfig(
      * stays opt-in per target.
      */
     @SerialName("stripForeignCodecs") val stripForeignCodecs: Boolean = false,
+
+    /**
+     * Privacy domains this target should be answered with nothing.
+     *
+     * Stored as domain ids rather than as an enum so an older build tolerates a config written
+     * by a newer one: unknown ids are dropped by
+     * [io.guise.core.privacy.PrivacyDomain.parse] instead of failing to deserialise.
+     *
+     * Note what this does **not** do: it never touches the app's permissions. The permission
+     * really is granted, and the data source is emptied -- see
+     * [io.guise.core.privacy.PrivacyDomain] for why that distinction is the whole point.
+     */
+    @SerialName("emptiedDomains") val emptiedDomains: Set<String> = emptySet(),
 )
 
 @Serializable
@@ -123,6 +137,7 @@ object ConfigResolver {
             overrides = target.overrides,
             runtime = runtime ?: RuntimeVersion.of(device),
             stripForeignCodecs = target.stripForeignCodecs,
+            emptiedDomains = PrivacyDomain.parse(target.emptiedDomains),
         )
     }
 }

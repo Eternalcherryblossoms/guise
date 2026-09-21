@@ -1,5 +1,6 @@
 package io.guise.core.profile
 
+import io.guise.core.privacy.PrivacyDomain
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 
@@ -76,6 +77,15 @@ class EffectiveProfile(
      * profile. See [io.guise.core.config.TargetConfig.stripForeignCodecs] for the trade-off.
      */
     val stripForeignCodecs: Boolean = false,
+    /**
+     * Per-target privacy domains to answer with nothing.
+     *
+     * Carried here for the same reason as [stripForeignCodecs]: every consumer already holds the
+     * resolved profile, and a second plumbing path for per-target policy would cost more than the
+     * mild impurity of a resolved-values object holding one. If a third policy appears, this and
+     * [stripForeignCodecs] should move into a `TargetPolicy` holder.
+     */
+    val emptiedDomains: Set<PrivacyDomain> = emptySet(),
 ) {
     /** Effective value for [key] as a string, honouring any override. */
     fun string(key: FieldKey): String = overrides[key.id] ?: derived(key)
@@ -188,10 +198,13 @@ class EffectiveProfile(
             overrides: Map<String, String> = emptyMap(),
             runtime: RuntimeVersion = RuntimeVersion.of(device),
             stripForeignCodecs: Boolean = false,
+            emptiedDomains: Set<PrivacyDomain> = emptySet(),
         ): EffectiveProfile {
             val soc = catalog.soc(device.socKey)
                 ?: error("device '${device.key}' references unknown soc '${device.socKey}'")
-            return EffectiveProfile(device, soc, overrides, runtime, stripForeignCodecs)
+            return EffectiveProfile(
+                device, soc, overrides, runtime, stripForeignCodecs, emptiedDomains,
+            )
         }
     }
 }

@@ -47,6 +47,24 @@ Guise 的做法不同：
 | 编解码器厂商前缀 | `MediaCodecList` 的组件名带芯片厂商前缀（`c2.mtk.` / `c2.qti.`），来自 vendor 配置，不覆盖就会暴露真实芯片。**列表只能过滤不能增加**，隐藏后可能让目标应用找不到它需要的解码器（表现为播放异常），所以做成逐应用开关 |
 | 屏幕密度 | 改写密度会改变目标应用的布局。分辨率完全不改——`DisplayMetrics` 有太多读取路径不经过 `Resources.updateConfiguration`，半改比不改更糟 |
 
+### 隐私数据（默认关闭）
+
+有些应用要的权限和它的功能毫无关系——一个计算器非要读通讯录，不给就不让用。**撤销权限解决不了这个问题**：应用会在自己的权限门上直接拒绝运行。
+
+所以 Guise 反过来做：
+
+> **权限真的授予（你在系统设置里点允许），但数据源被掏空。应用正常启动，然后读到 0 条。**
+
+| 数据 | 说明 |
+|---|---|
+| **通讯录** | 应用读到 0 条联系人 |
+| **通话记录** | 应用读到 0 条记录。**建议与通讯录同时开启**——只清空联系人却留着通话记录，等于告诉对方「这个人有来电但没有联系人」 |
+| **日历** | 0 个日历、0 条日程 |
+
+**为什么是空数据而不是可信假数据**：空的通讯录是一种**常见状态**（真有人通讯录是空的），所以**没有东西可以被交叉比对**。而伪造的联系人只有在**完全自洽**时才有意义——姓名要符合地区、号码段要对应伪装的定位、还要和通话记录呼应。那需要一套「人格档案」和地区语料库，是下一步而不是这一步。
+
+**已知风险**：假设至少有一行的应用（`cursor.moveToFirst()` 后不判空就 `getString()`）会崩溃。这类应用在真实用户通讯录为空时同样会崩，是应用自己的 bug——但用户会认为是 Guise 弄坏的。
+
 ### 一致性保证
 
 1. **指纹是派生的，不是存储的** —— `BRAND/PRODUCT/DEVICE:RELEASE/ID/INCREMENTAL:TYPE/TAGS` 由其它字段算出来，不可能自相矛盾
@@ -260,6 +278,33 @@ Two further channels are **opt-in per target** and off by default:
 |---|---|
 | Codec vendor prefixes | `MediaCodecList` names its components with the silicon vendor (`c2.mtk.`, `c2.qti.`), and that list comes from vendor configuration, so nothing else hides the real chip. But the list can only be **filtered, never extended**, and hiding a codec an app needs shows up as broken playback. |
 | Screen density | Rewriting density changes the target's layout. Resolution is not touched at all: `DisplayMetrics` is read from too many paths that never pass through `Resources.updateConfiguration`, and a half-changed display is worse than either extreme. |
+
+### Privacy data (off by default)
+
+Some apps ask for permissions that have nothing to do with what they do -- a calculator that
+demands the address book and refuses to start otherwise. **Revoking the permission does not
+solve that**: the app simply fails its own permission gate.
+
+So Guise does the opposite:
+
+> **The permission really is granted** (you tap allow in Android settings) **and the data source
+> is emptied.** The app starts normally and then finds zero rows.
+
+| Data | What the app sees |
+|---|---|
+| **Contacts** | zero contacts |
+| **Call log** | zero entries. **Turn this on alongside contacts** -- emptying contacts while leaving the call log says "this person receives calls but knows nobody" |
+| **Calendar** | zero calendars, zero events |
+
+**Why empty rather than plausible fake data:** an empty address book is an *ordinary state* --
+plenty of real people have one -- so there is nothing to cross-check. A fabricated contact list
+is only better if it is fully coherent: names matching the region, dialling codes matching the
+faked location, consistent with the call log beside it. That needs a persona model and a region
+corpus, which is the next step rather than this one.
+
+**Known risk:** an app that assumes at least one row (`cursor.moveToFirst()` then `getString()`
+with no null check) will crash on an empty cursor. Such an app also crashes for a real user with
+an empty address book, so the bug is the app's -- but the user will blame Guise.
 
 ### Coherence guarantees
 

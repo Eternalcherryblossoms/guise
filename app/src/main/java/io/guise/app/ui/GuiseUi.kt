@@ -46,6 +46,7 @@ import io.guise.app.data.Project
 import io.guise.core.config.TargetConfig
 import io.guise.core.profile.DeviceProfile
 import io.guise.core.profile.FieldKey
+import io.guise.core.privacy.PrivacyDomain
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -443,9 +444,36 @@ private fun DetailScreen(vm: GuiseViewModel, packageName: String) {
 
         item {
             Text(
+                "隐私数据",
+                style = MaterialTheme.typography.titleMedium,
+                modifier = Modifier.padding(top = 16.dp),
+            )
+        }
+
+        item {
+            Text(
+                "权限不会被撤销——你需要在系统设置里正常授予，应用才能通过它自己的权限门。" +
+                    "开启后应用会读到 0 条数据，就像这些数据本来就不存在。" +
+                    "空的通讯录是一种常见状态，所以没有东西可以被交叉比对。",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
+
+        items(PrivacyDomain.entries.toList(), key = { "privacy-${it.id}" }) { domain ->
+            PrivacyRow(
+                domain = domain,
+                enabled = target.emptiedDomains.contains(domain.id),
+                onToggle = { vm.setPrivacyDomain(packageName, domain, it) },
+            )
+            HorizontalDivider()
+        }
+
+        item {
+            Text(
                 "字段覆盖（留空表示跟随档案）",
                 style = MaterialTheme.typography.titleMedium,
-                modifier = Modifier.padding(top = 8.dp),
+                modifier = Modifier.padding(top = 16.dp),
             )
         }
 
@@ -761,6 +789,41 @@ private fun UpdateCard(vm: GuiseViewModel, open: (String) -> Unit) {
 }
 
 // ---------------------------------------------------------------------------
+
+/**
+ * One privacy domain's switch.
+ *
+ * The explanation is always visible rather than behind a tap: the difference between "denied"
+ * and "granted but empty" is the entire feature, and a user who reads only "清空通讯录" will
+ * reasonably assume the permission is being blocked, then wonder why the app still starts.
+ */
+@Composable
+private fun PrivacyRow(
+    domain: PrivacyDomain,
+    enabled: Boolean,
+    onToggle: (Boolean) -> Unit,
+) {
+    Row(
+        Modifier.fillMaxWidth().padding(vertical = 10.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Column(Modifier.weight(1f)) {
+            Text(domain.label, style = MaterialTheme.typography.bodyLarge)
+            Text(
+                domain.explanation,
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+            Text(
+                domain.permission,
+                style = MaterialTheme.typography.labelSmall,
+                fontFamily = FontFamily.Monospace,
+                color = MaterialTheme.colorScheme.outline,
+            )
+        }
+        Switch(checked = enabled, onCheckedChange = onToggle)
+    }
+}
 
 @Composable
 private fun SearchField(value: String, onValueChange: (String) -> Unit, placeholder: String) {
