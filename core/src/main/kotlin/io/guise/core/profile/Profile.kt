@@ -116,6 +116,13 @@ data class DisplayProfile(
  * overwhelming majority of handsets, and every device that shares a SoC shares all of these
  * derived values. If these were duplicated per handset they would drift, and drift is exactly
  * what cross-channel verification detects.
+ *
+ * Memory is conspicuously **absent**, and that is deliberate rather than an oversight. It was
+ * here once, as `totalRamBytes`, and the field was never read by anything. A chip is not sold
+ * with one memory size -- the Snapdragon 865 shipped in 6, 8, 12 and 16 GB handsets -- so
+ * attaching it to the SoC flattened four configurations into one and let twelve of the fourteen
+ * catalog devices inherit a figure that matched neither test handset. It lives on
+ * [DeviceProfile.ramBytes] now. See [RamTier].
  */
 @Serializable
 data class SocProfile(
@@ -149,7 +156,6 @@ data class SocProfile(
      * ["c2.qti.", "OMX.qcom."]. Keeps the codec channel coherent.
      */
     @SerialName("codecPrefixes") val codecPrefixes: List<String> = emptyList(),
-    @SerialName("totalRamBytes") val totalRamBytes: Long = 0L,
 )
 
 /**
@@ -209,6 +215,20 @@ data class DeviceProfile(
     // ---- components ---------------------------------------------------------
     @SerialName("socKey") val socKey: String,
     @SerialName("display") val display: DisplayProfile,
+    /**
+     * Nominal memory this handset shipped with, in bytes; 0 when unknown.
+     *
+     * A **compatibility constraint, not a reported value**. Total memory is the one hardware
+     * fact that survives every layer of Guise -- `ActivityManager.MemoryInfo` is a binder call
+     * and `/proc/meminfo` is the kernel's own count -- so there is nothing to spoof. What the
+     * catalog can do is refuse to offer a profile whose memory contradicts the handset, which is
+     * what [Compatibility] does and what the picker shows.
+     *
+     * Must be one of [RamTier.capacitiesGiB] times [RamTier.GIB], or 0. A device entry
+     * represents one SKU: if a handset was sold in several memory configurations, add an entry
+     * per configuration rather than picking one and hoping.
+     */
+    @SerialName("ramBytes") val ramBytes: Long = 0L,
 
     // ---- optional -----------------------------------------------------------
     @SerialName("serial") val serial: String? = null,

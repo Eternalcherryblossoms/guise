@@ -79,4 +79,33 @@ class CatalogTest {
         assertTrue(catalog.search("pixel").all { it.name.contains("Pixel") })
         assertEquals(1, catalog.search("M2011K2C").size)
     }
+
+    @Test
+    fun `every bundled device declares the memory it shipped with`() {
+        val catalog = TestCatalog.load()
+        val unspecified = catalog.devices.values.filter { it.ramBytes <= 0L }.map { it.key }
+        assertTrue(
+            "memory is a compatibility constraint, so a shipped entry must state it: $unspecified",
+            unspecified.isEmpty(),
+        )
+    }
+
+    @Test
+    fun `bundled catalog covers three memory tiers`() {
+        // Counting devices is the wrong measure and this is why: fourteen devices serve three
+        // memory tiers, because twelve of them inherited one figure from their SoC.
+        val catalog = TestCatalog.load()
+        assertEquals(listOf(6, 8, 12), catalog.coveredRamGiB())
+    }
+
+    @Test
+    fun `the bundled catalog's 16 GB hole is pinned, not forgotten`() {
+        // A tripwire rather than an endorsement. Device B reports 14 GB -- the 16 GB tier -- and
+        // nothing in the shipped catalog can serve it. The catalog generator is meant to close
+        // this hole from real Pixel build data; whichever change does so must also replace this
+        // test with an assertion that the hole is gone. Asserting the gap keeps it visible
+        // instead of letting it read as "the catalog is fine".
+        val catalog = TestCatalog.load()
+        assertEquals(listOf(16), catalog.uncoveredRamGiB(listOf(6, 8, 12, 16)))
+    }
 }

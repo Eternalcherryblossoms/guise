@@ -502,16 +502,25 @@ class PhysicalCheck : ProbeCheck {
         // reach the file, not the binder reply. So a profile whose handset shipped with a
         // different memory size is an inherent, unfixable tell -- worth surfacing, because the
         // fix is to choose a different profile, not to write more code.
+        //
+        // The tier table is duplicated here rather than imported from :core on purpose. The probe
+        // is the independent observer; if it read the module's own tables, a wrong table would
+        // confirm itself. See the class comment on ProbeDomain for the same argument.
         memApi?.let { kb ->
-            val gb = kb / 1024 / 1024
+            val bytes = kb * 1024
+            val reportedGb = bytes.toDouble() / (1024.0 * 1024.0 * 1024.0)
+            val tier = listOf(1, 2, 3, 4, 6, 8, 12, 16, 24, 32)
+                .firstOrNull { it.toLong() * 1024 * 1024 * 1024 >= bytes }
             findings += Finding(
                 label = "内存容量（不可伪装）",
-                observed = "约 ${gb} GB",
+                observed = "%.1f GB".format(reportedGb) +
+                    (tier?.let { "，出厂应为 $it GB 档" } ?: "，超出已知档位"),
                 verdict = Verdict.INFO,
                 detail = "本机内存无法被任何一层伪装：ActivityManager 走 binder，" +
-                    "/proc/meminfo 由内核提供。若所选机型的标称内存与此不符" +
-                    "（例如本机 ${gb}GB 而档案机型只有 8GB），带机型库的指纹 SDK 可以直接识破。" +
-                    "这是选档案时应当匹配的一项，不是代码能解决的问题。",
+                    "/proc/meminfo 由内核提供。报告值总是低于标称值（内核先扣掉保留内存），" +
+                    "所以 ${"%.1f".format(reportedGb)} GB 对应的是 $tier GB 档的机器。" +
+                    "选档案时应当匹配这一档——管理端会按本机实测值把不相容的档案标出来。" +
+                    "这是选档案时该看的一项，不是代码能解决的问题。",
             )
         }
 

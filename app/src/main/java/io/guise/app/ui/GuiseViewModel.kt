@@ -17,10 +17,13 @@ import io.guise.app.data.UpdateInfo
 import io.guise.app.service.XposedBridgeClient
 import io.guise.core.config.ModuleConfig
 import io.guise.core.config.TargetConfig
+import io.guise.core.profile.Compatibility
 import io.guise.core.profile.DeviceCatalog
 import io.guise.core.profile.DeviceProfile
 import io.guise.core.profile.EffectiveProfile
 import io.guise.core.profile.FieldKey
+import io.guise.core.profile.HandsetFacts
+import io.guise.core.profile.RamTier
 import io.guise.core.profile.RuntimeVersion
 import io.guise.core.privacy.PrivacyDomain
 import kotlinx.coroutines.flow.collectLatest
@@ -163,6 +166,50 @@ class GuiseViewModel(app: Application) : AndroidViewModel(app) {
         return "该档案记录于 Android ${device.androidRelease} (API ${device.sdkInt})，" +
             "本机为 Android ${Build.VERSION.RELEASE} (API ${Build.VERSION.SDK_INT})。" +
             "运行时将采用本机版本——API 级别无法安全改写，且 release 必须与之一致。"
+    }
+
+    // ---- compatibility ------------------------------------------------------
+
+    /**
+     * This handset's unspoofable facts, read once.
+     *
+     * Read eagerly on first use rather than per row: the picker judges every visible profile
+     * against it, and re-reading `ActivityManager` for each one would be pure waste.
+     */
+    private val handset: HandsetFacts by lazy {
+        DeviceCapture.handsetFacts(getApplication())
+    }
+
+    /**
+     * Reasons [device] would be visibly inconsistent on *this* handset. Empty means it fits.
+     *
+     * The judgement is not "is this profile good" but "can this machine wear it" -- memory and
+     * the ABI list are the two facts no layer of Guise can change, so a profile that disagrees
+     * with them is a contradiction the target app can read for itself. See [Compatibility].
+     */
+    fun compatibilityFor(device: DeviceProfile): List<String> {
+        val soc = catalogRepo.catalog().socs[device.socKey] ?: return emptyList()
+        return Compatibility.issues(device, soc, handset)
+    }
+
+    fun compatibilityFor(packageName: String): List<String> {
+        val device = profileFor(packageName) ?: return emptyList()
+        return compatibilityFor(device)
+    }
+
+    /** How many catalog profiles fit this handset, for the picker's header. */
+    fun fittingCount(): Int = catalog().devices.values.count { compatibilityFor(it).isEmpty() }
+
+    /** Shown on the picker so the number is explained rather than just displayed. */
+    fun handsetSummary(): String {
+        val ram = if (handset.reportedRamBytes > 0) {
+            "${RamTier.reportedLabel(handset.reportedRamBytes)}" +
+                "（${RamTier.nominalGiB(handset.reportedRamBytes)} GB 档）"
+        } else {
+            "未知"
+        }
+        val abi = handset.abis.firstOrNull() ?: "未知"
+        return "本机实测：内存 $ram · ABI $abi。两者都无法伪装，所以不相容的档案会被标出来。"
     }
 
     // ---- navigation ---------------------------------------------------------

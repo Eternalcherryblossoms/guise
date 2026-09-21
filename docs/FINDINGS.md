@@ -64,6 +64,49 @@ checked against a real device eventually had to be revised.
 
 ---
 
+## The memory field that was never read
+
+The row above says a memory mismatch is "a profile-selection problem, not a code problem". That
+was half right, and the half it got wrong is instructive.
+
+Memory was modelled on `SocProfile` as `totalRamBytes`. Nothing read it -- not the coherence
+validator, not the probe, not the picker. It was a field that documented an intent and enforced
+nothing.
+
+That was not merely inert, it was actively wrong, for a reason the SoC-level placement hides: **a
+chip is not sold with one memory size.** The Snapdragon 865 shipped in 6, 8, 12 and 16 GB
+handsets. Pinning memory to the chip flattened four distinct machines into one figure, and because
+nine of the eleven catalog SoCs happened to carry 8 GiB, twelve of the fourteen devices inherited
+it. The catalog advertised fourteen devices while covering **two** memory tiers.
+
+The consequence was already in this document and had not been connected to it: device A reports
+11 GB and device B 14 GB, and no catalog entry could serve either. The failure was not
+probabilistic ("what if too many users pick the same profile") but structural -- a handset
+configuration with nothing to wear, and no code path that noticed.
+
+Three things were fixed, and they generalise:
+
+1. **Memory moved to the device**, where it is a SKU property: `DeviceProfile.ramBytes`, the
+   nominal capacity the handset shipped with. A profile per memory configuration is the correct
+   granularity, even when several configurations ship byte-identical builds -- memory does not
+   appear in `build.prop`, so those entries reuse the same captured values and differ only in
+   `ramBytes`. Nothing is fabricated.
+2. **Reported values map up, not to the nearest tier.** The kernel subtracts reserved memory
+   before the platform can count it, so a 12 GB handset reports about 11. Rounding to the nearest
+   tier would place that handset in the 12 GB tier by luck and an 11.4 GB one in the 8 GB tier by
+   accident. The rule is "the smallest capacity not below what was reported", and it is a pure
+   function with tests rather than a heuristic in the UI.
+3. **An unreadable figure is `unknown`, never a match.** `Compatibility.ramIssue` returns null
+   both when it agrees *and* when it could not tell. Those are different answers, and conflating
+   them is how a diagnostic starts reporting reassurance it has not earned.
+
+The catalog's coverage is now measured in tiers rather than in devices
+(`DeviceCatalog.coveredRamGiB` / `uncoveredRamGiB`), because device count was the number that
+looked reassuring while the 16 GB tier stood empty. A test pins that hole so it cannot be
+forgotten, and the generator is meant to close it.
+
+---
+
 ## The one boundary the privacy layer cannot cross
 
 Emptied data sources cover every domain backed by a **content provider** -- contacts, call log,

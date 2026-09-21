@@ -40,8 +40,7 @@
       "gpuVendor": "Qualcomm",
       "gpuRenderer": "Adreno (TM) 650",
       "abis": ["arm64-v8a", "armeabi-v7a", "armeabi"],
-      "codecPrefixes": ["c2.qti.", "OMX.qcom."],
-      "totalRamBytes": 8589934592
+      "codecPrefixes": ["c2.qti.", "OMX.qcom."]
     },
     "sm7250": {
       "key": "sm7250",
@@ -56,8 +55,7 @@
       "gpuVendor": "Qualcomm",
       "gpuRenderer": "Adreno (TM) 620",
       "abis": ["arm64-v8a", "armeabi-v7a", "armeabi"],
-      "codecPrefixes": ["c2.qti.", "OMX.qcom."],
-      "totalRamBytes": 8589934592
+      "codecPrefixes": ["c2.qti.", "OMX.qcom."]
     },
     "sm8350": {
       "key": "sm8350",
@@ -72,8 +70,7 @@
       "gpuVendor": "Qualcomm",
       "gpuRenderer": "Adreno (TM) 660",
       "abis": ["arm64-v8a", "armeabi-v7a", "armeabi"],
-      "codecPrefixes": ["c2.qti.", "OMX.qcom."],
-      "totalRamBytes": 8589934592
+      "codecPrefixes": ["c2.qti.", "OMX.qcom."]
     },
     "sm8550": {
       "key": "sm8550",
@@ -88,8 +85,7 @@
       "gpuVendor": "Qualcomm",
       "gpuRenderer": "Adreno (TM) 740",
       "abis": ["arm64-v8a", "armeabi-v7a", "armeabi"],
-      "codecPrefixes": ["c2.qti.", "OMX.qcom."],
-      "totalRamBytes": 12884901888
+      "codecPrefixes": ["c2.qti.", "OMX.qcom."]
     },
     "gs101": {
       "key": "gs101",
@@ -104,8 +100,7 @@
       "gpuVendor": "ARM",
       "gpuRenderer": "Mali-G78",
       "abis": ["arm64-v8a", "armeabi-v7a", "armeabi"],
-      "codecPrefixes": ["c2.android.", "c2.google.", "c2.gs101.", "OMX.google."],
-      "totalRamBytes": 8589934592
+      "codecPrefixes": ["c2.android.", "c2.google.", "c2.gs101.", "OMX.google."]
     },
     "gs201": {
       "key": "gs201",
@@ -120,8 +115,7 @@
       "gpuVendor": "ARM",
       "gpuRenderer": "Mali-G710",
       "abis": ["arm64-v8a", "armeabi-v7a", "armeabi"],
-      "codecPrefixes": ["c2.android.", "c2.google.", "c2.gs201.", "OMX.google."],
-      "totalRamBytes": 8589934592
+      "codecPrefixes": ["c2.android.", "c2.google.", "c2.gs201.", "OMX.google."]
     },
     "mt6895": {
       "key": "mt6895",
@@ -136,8 +130,7 @@
       "gpuVendor": "ARM",
       "gpuRenderer": "Mali-G610 MC6",
       "abis": ["arm64-v8a", "armeabi-v7a", "armeabi"],
-      "codecPrefixes": ["c2.android.", "OMX.google.", "c2.mtk.", "OMX.MTK."],
-      "totalRamBytes": 8589934592
+      "codecPrefixes": ["c2.android.", "OMX.google.", "c2.mtk.", "OMX.MTK."]
     },
     "sm8250_ac": {
       "key": "sm8250_ac",
@@ -152,8 +145,7 @@
       "gpuVendor": "Qualcomm",
       "gpuRenderer": "Adreno (TM) 650",
       "abis": ["arm64-v8a", "armeabi-v7a", "armeabi"],
-      "codecPrefixes": ["c2.qti.", "OMX.qcom.", "c2.android.", "OMX.google."],
-      "totalRamBytes": 8589934592
+      "codecPrefixes": ["c2.qti.", "OMX.qcom.", "c2.android.", "OMX.google."]
     },
     "sm8450": {
       "key": "sm8450",
@@ -168,8 +160,7 @@
       "gpuVendor": "Qualcomm",
       "gpuRenderer": "Adreno (TM) 730",
       "abis": ["arm64-v8a", "armeabi-v7a", "armeabi"],
-      "codecPrefixes": ["c2.qti.", "OMX.qcom.", "c2.android.", "OMX.google."],
-      "totalRamBytes": 8589934592
+      "codecPrefixes": ["c2.qti.", "OMX.qcom.", "c2.android.", "OMX.google."]
     },
     "sm8650": {
       "key": "sm8650",
@@ -184,8 +175,7 @@
       "gpuVendor": "Qualcomm",
       "gpuRenderer": "Adreno (TM) 750",
       "abis": ["arm64-v8a", "armeabi-v7a", "armeabi"],
-      "codecPrefixes": ["c2.qti.", "OMX.qcom.", "c2.android.", "OMX.google."],
-      "totalRamBytes": 12884901888
+      "codecPrefixes": ["c2.qti.", "OMX.qcom.", "c2.android.", "OMX.google."]
     },
     "gs301": {
       "key": "gs301",
@@ -200,8 +190,7 @@
       "gpuVendor": "ARM",
       "gpuRenderer": "Mali-G715",
       "abis": ["arm64-v8a", "armeabi-v7a", "armeabi"],
-      "codecPrefixes": ["c2.android.", "c2.google.", "OMX.google."],
-      "totalRamBytes": 8589934592
+      "codecPrefixes": ["c2.android.", "c2.google.", "OMX.google."]
     }
   },
   "devices": {
@@ -226,6 +215,7 @@
       "displayId": "RQ3A.211001.001",
       "bootloader": "r3-0.4-7379435",
       "socKey": "sm7250",
+      "ramBytes": 8589934592,
       "display": {
         "widthPx": 1080,
         "heightPx": 2340,
@@ -254,6 +244,7 @@
       "displayId": "SP1A.210812.015",
       "bootloader": "slider-1.0-7718710",
       "socKey": "gs101",
+      "ramBytes": 8589934592,
       "display": {
         "widthPx": 1080,
         "heightPx": 2400,
@@ -282,6 +273,7 @@
       "displayId": "TQ1A.221205.011",
       "bootloader": "panther-1.1-9032953",
       "socKey": "gs201",
+      "ramBytes": 8589934592,
       "display": {
         "widthPx": 1080,
         "heightPx": 2400,
@@ -310,6 +302,7 @@
       "displayId": "RKQ1.200826.002",
       "bootloader": "unknown",
       "socKey": "sm8250",
+      "ramBytes": 8589934592,
       "display": {
         "widthPx": 1080,
         "heightPx": 2340,
@@ -338,6 +331,7 @@
       "displayId": "SKQ1.211006.001",
       "bootloader": "unknown",
       "socKey": "sm8350",
+      "ramBytes": 8589934592,
       "display": {
         "widthPx": 1440,
         "heightPx": 3200,
@@ -366,6 +360,7 @@
       "displayId": "TKQ1.220829.002",
       "bootloader": "unknown",
       "socKey": "sm8550",
+      "ramBytes": 8589934592,
       "display": {
         "widthPx": 1080,
         "heightPx": 2400,
@@ -394,6 +389,7 @@
       "displayId": "UP1A.231005.007",
       "bootloader": "unknown",
       "socKey": "mt6895",
+      "ramBytes": 12884901888,
       "display": {
         "widthPx": 1080,
         "heightPx": 2460,
@@ -422,6 +418,7 @@
       "displayId": "RKQ1.200826.002",
       "bootloader": "unknown",
       "socKey": "sm8250_ac",
+      "ramBytes": 6442450944,
       "display": {
         "widthPx": 1080,
         "heightPx": 2400,
@@ -450,6 +447,7 @@
       "displayId": "SP1A.210812.016",
       "bootloader": "unknown",
       "socKey": "mt6895",
+      "ramBytes": 8589934592,
       "display": {
         "widthPx": 1440,
         "heightPx": 3200,
@@ -478,6 +476,7 @@
       "displayId": "SKQ1.211006.001",
       "bootloader": "unknown",
       "socKey": "sm8450",
+      "ramBytes": 8589934592,
       "display": {
         "widthPx": 1080,
         "heightPx": 2400,
@@ -506,6 +505,7 @@
       "displayId": "UKQ1.230804.001",
       "bootloader": "unknown",
       "socKey": "sm8650",
+      "ramBytes": 12884901888,
       "display": {
         "widthPx": 1200,
         "heightPx": 2670,
@@ -534,6 +534,7 @@
       "displayId": "SP2A.220505.002",
       "bootloader": "bluejay-1.2-8734334",
       "socKey": "gs101",
+      "ramBytes": 6442450944,
       "display": {
         "widthPx": 1080,
         "heightPx": 2400,
@@ -562,6 +563,7 @@
       "displayId": "UQ1A.240205.004",
       "bootloader": "shiba-14.3-11261976",
       "socKey": "gs301",
+      "ramBytes": 8589934592,
       "display": {
         "widthPx": 1080,
         "heightPx": 2400,
@@ -590,6 +592,7 @@
       "displayId": "UQ1A.240205.004",
       "bootloader": "husky-14.3-11261976",
       "socKey": "gs301",
+      "ramBytes": 12884901888,
       "display": {
         "widthPx": 1344,
         "heightPx": 2992,

@@ -35,6 +35,24 @@ data class DeviceCatalog(
             .sortedBy { it.name }
     }
 
+    /** Memory tiers, in GiB, that at least one device actually covers. Ascending. */
+    fun coveredRamGiB(): List<Int> = devices.values
+        .mapNotNull { d -> RamTier.nominalGiB(d.ramBytes) }
+        .distinct()
+        .sorted()
+
+    /**
+     * Memory tiers among [among] that **no** device covers.
+     *
+     * This is the number that matters, and it is not the device count. A catalog of fourteen
+     * devices can cover two memory tiers, which is exactly what the shipped catalog did: every
+     * handset in it declared 8 GiB or 12 GiB, so a user on a 16 GB phone had no coherent profile
+     * at all and nothing said so. Coverage is a property of the tiers, not of the list length.
+     */
+    fun uncoveredRamGiB(among: Collection<Int> = RamTier.capacitiesGiB): List<Int> =
+        among.filter { tier -> devices.values.none { RamTier.nominalGiB(it.ramBytes) == tier } }
+            .sorted()
+
     /**
      * Structural validation of the whole catalog. Run as a unit test against the
      * bundled asset so a bad entry cannot ship.
@@ -44,6 +62,12 @@ data class DeviceCatalog(
             if (key != d.key) add("device map key '$key' != profile key '${d.key}'")
             d.invariants().forEach { add("device '$key': $it") }
             if (socs[d.socKey] == null) add("device '$key' references unknown soc '${d.socKey}'")
+            if (!RamTier.isKnownCapacity(d.ramBytes)) {
+                add(
+                    "device '$key': ramBytes ${d.ramBytes} is not a capacity handsets ship with " +
+                        "(allowed: 0 for unknown, or one of ${RamTier.capacitiesGiB} GiB)",
+                )
+            }
         }
         socs.forEach { (key, s) ->
             if (key != s.key) add("soc map key '$key' != profile key '${s.key}'")

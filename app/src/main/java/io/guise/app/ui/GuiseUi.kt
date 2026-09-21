@@ -46,6 +46,7 @@ import io.guise.app.data.Project
 import io.guise.core.config.TargetConfig
 import io.guise.core.profile.DeviceProfile
 import io.guise.core.profile.FieldKey
+import io.guise.core.profile.RamTier
 import io.guise.core.privacy.PrivacyDomain
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -306,6 +307,18 @@ private fun DevicePickerScreen(vm: GuiseViewModel) {
 
     Column(Modifier.fillMaxSize()) {
         SearchField(query, { vm.search = it }, "搜索机型、型号或品牌")
+
+        // The count is the point of this banner. A catalog can look large and still leave this
+        // particular handset with nothing coherent to wear -- fourteen devices covering three
+        // memory tiers, and a 16 GB phone fitting none of them. Showing it up front turns that
+        // from a silent lie into a visible gap.
+        Text(
+            vm.handsetSummary() + " 本机可穿的档案：${vm.fittingCount()} / ${vm.catalog().devices.size}。",
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp),
+        )
+
         LazyColumn(Modifier.fillMaxSize()) {
             brands.forEach { (brand, devices) ->
                 item(key = "hdr-$brand") {
@@ -317,7 +330,7 @@ private fun DevicePickerScreen(vm: GuiseViewModel) {
                     )
                 }
                 items(devices, key = { it.key }) { device ->
-                    DeviceRow(device) { vm.pickDevice(device) }
+                    DeviceRow(device, vm.compatibilityFor(device)) { vm.pickDevice(device) }
                     HorizontalDivider()
                 }
             }
@@ -335,11 +348,24 @@ private fun DevicePickerScreen(vm: GuiseViewModel) {
 }
 
 @Composable
-private fun DeviceRow(device: DeviceProfile, onClick: () -> Unit) {
+private fun DeviceRow(device: DeviceProfile, issues: List<String>, onClick: () -> Unit) {
     Column(Modifier.fillMaxWidth().clickable(onClick = onClick).padding(16.dp)) {
-        Text(device.name, style = MaterialTheme.typography.bodyLarge)
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Text(device.name, style = MaterialTheme.typography.bodyLarge, modifier = Modifier.weight(1f))
+            Text(
+                if (issues.isEmpty()) "相容" else "与本机不符",
+                style = MaterialTheme.typography.labelMedium,
+                fontWeight = FontWeight.SemiBold,
+                color = if (issues.isEmpty()) {
+                    MaterialTheme.colorScheme.primary
+                } else {
+                    MaterialTheme.colorScheme.error
+                },
+            )
+        }
         Text(
-            "${device.model}  ·  ${device.product}  ·  Android ${device.androidRelease} (API ${device.sdkInt})",
+            "${device.model}  ·  ${device.product}  ·  Android ${device.androidRelease} " +
+                "(API ${device.sdkInt})  ·  ${RamTier.label(device.ramBytes)}",
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
@@ -405,6 +431,15 @@ private fun DetailScreen(vm: GuiseViewModel, packageName: String) {
         // the probe flags the mismatch otherwise, and the reason is not obvious.
         vm.versionMismatch(packageName)?.let { note ->
             item { NoteCard("Android 版本取自本机", note) }
+        }
+
+        // Memory and the ABI list are the two facts no layer of Guise can rewrite, so a profile
+        // that disagrees with them is a contradiction the target app reads for itself. Saying so
+        // here rather than blocking the choice is deliberate: the user may have a reason to want
+        // a particular model, and the honest move is to name the trade rather than make it for
+        // them.
+        vm.compatibilityFor(packageName).forEach { issue ->
+            item { NoteCard("这台设备穿不上这个档案", issue) }
         }
 
         item {

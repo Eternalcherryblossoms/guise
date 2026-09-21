@@ -1,10 +1,13 @@
 package io.guise.app.data
 
+import android.app.ActivityManager
 import android.content.Context
 import android.os.Build
 import io.guise.core.profile.DeviceCatalog
 import io.guise.core.profile.DeviceProfile
 import io.guise.core.profile.DisplayProfile
+import io.guise.core.profile.HandsetFacts
+import io.guise.core.profile.RamTier
 import io.guise.core.profile.SocProfile
 
 /**
@@ -55,10 +58,37 @@ object DeviceCapture {
             bootloader = Build.BOOTLOADER,
             socKey = soc.key,
             display = display,
+            // Not a value to report -- nothing can report it, the kernel owns the figure. It is
+            // recorded so the catalog can refuse to offer this profile to a handset whose memory
+            // visibly differs. See RamTier.
+            ramBytes = ramTierFor(context),
             serial = runCatching { Build.getSerial() }.getOrNull()
                 ?.takeIf { it != Build.UNKNOWN },
         )
     }
+
+    /**
+     * What this handset reports about itself in the two facts Guise cannot rewrite.
+     *
+     * Read here rather than in the UI so the picker and the detail screen judge profiles against
+     * one snapshot of the machine.
+     */
+    fun handsetFacts(context: Context): HandsetFacts = HandsetFacts(
+        reportedRamBytes = reportedRamBytes(context),
+        abis = Build.SUPPORTED_ABIS?.toList().orEmpty(),
+    )
+
+    /** `ActivityManager.MemoryInfo.totalMem`, or 0 when it cannot be read. */
+    private fun reportedRamBytes(context: Context): Long = runCatching {
+        val am = context.getSystemService(Context.ACTIVITY_SERVICE) as ActivityManager
+        val info = ActivityManager.MemoryInfo()
+        am.getMemoryInfo(info)
+        info.totalMem
+    }.getOrDefault(0L)
+
+    /** Nominal capacity this handset shipped with, in bytes; 0 when it cannot be placed. */
+    private fun ramTierFor(context: Context): Long =
+        RamTier.nominalBytes(reportedRamBytes(context))
 
     /** The SoC entry to merge alongside a captured device. */
     fun socFor(context: Context, catalog: DeviceCatalog): SocProfile {

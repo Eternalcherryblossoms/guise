@@ -239,7 +239,7 @@ docs/    架构说明与实测发现
 高通设备上已知。`/sys/devices/soc0/machine` 会说出真实芯片（如 `Snapdragon`）。当前版本没有覆盖它——需要 Zygisk 层在进程私有 mount namespace 里伪造该文件。**临时办法：选一个同平台的档案。**
 
 **探针报内存或 ABI 不符？**
-这两项无法伪装。换一个内存容量和 ABI 列表与真机匹配的档案。
+这两项无法伪装。**5.5 起管理端会主动标出来**：机型选择页按本机实测的内存档位和 ABI 给每个档案标注「相容 / 与本机不符」，并显示「本机可穿的档案：N / 总数」。选一个匹配的即可——若一个都没有，那是机型库的覆盖缺口，不是你的配置问题。
 
 **探针报「注入痕迹可见」？**
 `/proc/self/maps` 里出现了 Zygisk/LSPosed 的 `.so` 路径。装一个隐藏模块（如 Shamiko）即可。
@@ -549,7 +549,10 @@ build does not cover it -- that needs a Zygisk layer faking the file inside the 
 private mount namespace. **Workaround: choose a profile on the same platform.**
 
 **The probe reports a RAM or ABI mismatch.**
-Neither can be spoofed. Choose a profile whose memory size and ABI list match the handset.
+Neither can be spoofed. **From 5.5 the app flags it for you**: the device picker judges every
+profile against this handset's measured memory tier and ABI, marks each row "compatible" or "does
+not fit this device", and shows a running count. Pick one that fits -- and if none does, that is a
+coverage hole in the catalog, not a mistake in your configuration.
 
 **The probe reports visible injection traces.**
 Zygisk/LSPosed `.so` paths are showing up in `/proc/self/maps`. Install a concealment module
