@@ -107,6 +107,91 @@ forgotten, and the generator is meant to close it.
 
 ---
 
+## Reading real build data out of Google's own index
+
+Growing the catalog from fourteen hand-entered devices to a defensible number had exactly one
+honest route: read shipped builds instead of transcribing specifications. Four things had to be
+true, and three of them were not obvious.
+
+**The index is static, but only on one host.** `developers.google.com/android/ota` renders its
+table with JavaScript and returns a 70 KB shell containing **zero build IDs**; `?device=husky`
+returns a byte-identical response. The China mirror `developers.google.cn` serves the same table
+as plain HTML: on the run recorded here, **681,911 bytes, 2,092 OTA URLs, 49 device codenames,
+643 distinct builds**, with marketing names in the section headings. Nothing about this is
+documented; it was found by fetching both.
+
+**Two kilobytes of a 2 GB file is the whole build identity.** An A/B OTA zip begins with a
+plain-text `META-INF/com/android/metadata`, and `post-build=` in it is the complete canonical
+fingerprint. A ranged GET of the first 2 KB returns, for example:
+
+```
+post-build=google/akita/akita:14/UD2A.231203.054/11501734:user/release-keys
+post-build-incremental=11501734
+post-sdk-level=34
+post-security-patch-level=2024-03-05
+```
+
+That is every build field the catalog stores, from an artifact nobody downloaded. Factory images
+do **not** contain the file -- verified by reading a factory zip's central directory -- so OTA
+zips are the only usable form.
+
+**The index host rate-limits ranged requests.** The first run got **HTTP 429 on all twelve**
+attempts against `googledownloads.cn`, which looks like abuse protection and is actually the
+wrong host. `dl.google.com` serves the identical path with `206 Partial Content`. The fix is a
+host rewrite and nothing else, and it is the kind of failure that reads as "slow down" rather
+than "you are asking the wrong server".
+
+**Most of the older Nexus-era rows have no metadata.** 276 of 2,092 builds failed, and the
+failures cluster by device rather than scattering: `ryu` 42, `shamu` 41, `sailfish` 33, `marlin`
+33, `angler` 24, `bullhead` 23. All 2013-2016 hardware. Read as "the metadata convention arrived
+with A/B updates", which is consistent with `ota-type=AB` appearing in every successful read.
+
+The result: **1,816 usable builds across 42 devices and Android 8 through 17**, committed as a
+1.5 MB snapshot so the catalog is reproducible without network access.
+
+### What this cost, and what it bought
+
+One assumption died. The obvious bulk source -- `tadiphone-buildprop-archive`, advertised as
+38,250 `build.prop` files -- turns out to be **partition-split**: of its 4,701
+`system.system.build.prop` files, **only 250 contain `ro.build.fingerprint` and only 9 contain
+`ro.board.platform`**. The real values live in the `product`/`vendor`/`odm` partitions. A source
+that looks like a corpus is not one until you open it.
+
+A second constraint turned out to be structural rather than temporary: **the GPU renderer string
+exists in no published file.** `glGetString(GL_RENDERER)` is answered by the driver at runtime, so
+an SoC entry can only be created by running on one of the chips. This is what limits the catalog,
+not the availability of devices -- **30 models have real builds in the snapshot and still cannot
+be emitted**, because their SoC is not in the table and inventing a renderer string would produce
+a profile whose silicon contradicts its identity. The generator names all 30 rather than dropping
+them quietly.
+
+The pipeline closed both gaps the earlier round had opened, including the one this file recorded
+as unfixable-by-selection:
+
+- **16 GB** was covered by a memory-variant entry, since memory appears in no build artifact and
+  two SKUs of one model legitimately share a build byte for byte.
+- **One build per release** replaced "repair the version token with `alignToRelease`". A build
+  belongs to exactly one Android release: `alignToRelease` fixes the token, but the date inside
+  the build ID and the security patch beside it still name the era they were made in. Emitting one
+  entry per (device, release) removes the impossible combination instead of disguising it, and
+  `Compatibility.releaseIssue` tells the user rather than letting them pick it.
+
+### The coverage measure that finally worked
+
+Each of these was true at some point in this project, and none of them meant what it looked like:
+
+| Measure | Why it misled |
+|---|---|
+| 14 devices | Covered 2 memory tiers; 12 entries had inherited one figure from their SoC |
+| 4 memory tiers covered | Still left a 16 GB handset on Android 16 with nothing to wear, because the only 16 GB entry was an Android 14 build |
+| 62 entries | 30 further models have real builds available and no entry at all |
+
+Coverage is two-dimensional -- memory tier **and** release -- and the honest measure is the empty
+cells. Eight of them remain, and `16 GB/Android 16` is one: that is device B's configuration, and
+it is still unserved. The generator prints the list rather than a total.
+
+---
+
 ## The one boundary the privacy layer cannot cross
 
 Emptied data sources cover every domain backed by a **content provider** -- contacts, call log,

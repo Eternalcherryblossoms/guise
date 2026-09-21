@@ -36,6 +36,40 @@ tasks.named<JavaExec>("run") {
     workingDir = rootProject.projectDir
 }
 
+/**
+ * The only part of the catalog pipeline that touches the network.
+ *
+ * Kept a separate, manually-run task rather than a build step for three reasons: the generator
+ * must stay deterministic and offline so `--check` is meaningful; a build that phones Google on
+ * every invocation is exactly the behaviour this project argues against; and the fetched result is
+ * committed as a snapshot, so a catalog can be reproduced without network access at all.
+ *
+ *     ./gradlew :catalog-gen:fetchPixel -Pproxy=127.0.0.1:7890
+ *     ./gradlew :catalog-gen:fetchPixel -Pargs="--limit 5 --only akita"
+ */
+tasks.register<JavaExec>("fetchPixel") {
+    group = "catalog"
+    description = "Fetch Google's OTA index and read each build's metadata into catalog/raw/"
+    mainClass.set("io.guise.cataloggen.FetchPixelKt")
+    classpath = sourceSets["main"].runtimeClasspath
+    workingDir = rootProject.projectDir
+
+    // The development environment reaches the internet through a local HTTP proxy; CI does not.
+    // Passing it as a project property keeps the proxy out of the committed build script.
+    (project.findProperty("proxy") as String?)?.let { proxy ->
+        val parts = proxy.split(":")
+        if (parts.size == 2) {
+            systemProperty("https.proxyHost", parts[0])
+            systemProperty("https.proxyPort", parts[1])
+            systemProperty("http.proxyHost", parts[0])
+            systemProperty("http.proxyPort", parts[1])
+        }
+    }
+    (project.findProperty("args") as String?)?.let { extra ->
+        args = extra.split(" ").filter(String::isNotBlank)
+    }
+}
+
 tasks.withType<Test>().configureEach {
     useJUnit()
     testLogging { events("passed", "failed", "skipped") }

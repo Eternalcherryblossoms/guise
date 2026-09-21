@@ -1,0 +1,137 @@
+{
+    "source": "Published Google Pixel device specifications for display, memory and model number; Google OTA metadata supplies every build field. Only models whose SoC is already in catalog/seed/corpus.json are listed, because the GPU renderer string is a runtime measurement that appears in no published file, and guessing it would produce a profile whose silicon contradicts its identity.",
+    "models": [
+        {
+            "codename": "redfin",
+            "socKey": "sm7250",
+            "model": "GD1YQ",
+            "ramGiB": [8],
+            "widthPx": 1080,
+            "heightPx": 2340,
+            "densityDpi": 432,
+            "refreshRates": [60.0, 90.0],
+            "source": "display and memory from published Pixel 5 specifications"
+        },
+        {
+            "codename": "barbet",
+            "socKey": "sm7250",
+            "model": "G4S1M",
+            "ramGiB": [8],
+            "widthPx": 1080,
+            "heightPx": 2400,
+            "densityDpi": 415,
+            "refreshRates": [60.0],
+            "source": "display and memory from published Pixel 5a specifications"
+        },
+        {
+            "codename": "bramble",
+            "socKey": "sm7250",
+            "model": "G025E",
+            "ramGiB": [6],
+            "widthPx": 1080,
+            "heightPx": 2340,
+            "densityDpi": 413,
+            "refreshRates": [60.0],
+            "source": "display and memory from published Pixel 4a (5G) specifications"
+        },
+        {
+            "codename": "oriole",
+            "socKey": "gs101",
+            "model": "GB7N6",
+            "ramGiB": [8],
+            "widthPx": 1080,
+            "heightPx": 2400,
+            "densityDpi": 411,
+            "refreshRates": [60.0, 90.0],
+            "source": "display and memory from published Pixel 6 specifications"
+        },
+        {
+            "codename": "raven",
+            "socKey": "gs101",
+            "model": "GLUOG",
+            "ramGiB": [12],
+            "widthPx": 1440,
+            "heightPx": 3120,
+            "densityDpi": 512,
+            "refreshRates": [60.0, 120.0],
+            "source": "display and memory from published Pixel 6 Pro specifications"
+        },
+        {
+            "codename": "bluejay",
+            "socKey": "gs101",
+            "model": "GX7AS",
+            "ramGiB": [6],
+            "widthPx": 1080,
+            "heightPx": 2400,
+            "densityDpi": 429,
+            "refreshRates": [60.0],
+            "source": "display and memory from published Pixel 6a specifications"
+        },
+        {
+            "codename": "panther",
+            "socKey": "gs201",
+            "model": "GVU6C",
+            "ramGiB": [8],
+            "widthPx": 1080,
+            "heightPx": 2400,
+            "densityDpi": 416,
+            "refreshRates": [60.0, 90.0],
+            "source": "display and memory from published Pixel 7 specifications"
+        },
+        {
+            "codename": "cheetah",
+            "socKey": "gs201",
+            "model": "GE2AE",
+            "ramGiB": [12],
+            "widthPx": 1440,
+            "heightPx": 3120,
+            "densityDpi": 512,
+            "refreshRates": [60.0, 120.0],
+            "source": "display and memory from published Pixel 7 Pro specifications"
+        },
+        {
+            "codename": "lynx",
+            "socKey": "gs201",
+            "model": "GHL1X",
+            "ramGiB": [8],
+            "widthPx": 1080,
+            "heightPx": 2400,
+            "densityDpi": 429,
+            "refreshRates": [60.0, 90.0],
+            "source": "display and memory from published Pixel 7a specifications"
+        },
+        {
+            "codename": "shiba",
+            "socKey": "gs301",
+            "model": "GKWS6",
+            "ramGiB": [8],
+            "widthPx": 1080,
+            "heightPx": 2400,
+            "densityDpi": 428,
+            "refreshRates": [60.0, 120.0],
+            "source": "display and memory from published Pixel 8 specifications"
+        },
+        {
+            "codename": "husky",
+            "socKey": "gs301",
+            "model": "GC3VE",
+            "ramGiB": [12],
+            "widthPx": 1344,
+            "heightPx": 2992,
+            "densityDpi": 489,
+            "refreshRates": [60.0, 120.0],
+            "source": "display and memory from published Pixel 8 Pro specifications"
+        },
+        {
+            "codename": "akita",
+            "socKey": "gs301",
+            "model": "GKV4X",
+            "ramGiB": [8],
+            "widthPx": 1080,
+            "heightPx": 2400,
+            "densityDpi": 430,
+            "refreshRates": [60.0, 120.0],
+            "source": "display and memory from published Pixel 8a specifications"
+        }
+    ]
+}

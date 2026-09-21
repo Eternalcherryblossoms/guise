@@ -191,7 +191,7 @@ class CoherenceTest {
         val config = ModuleConfig.EMPTY.withTarget(
             TargetConfig(
                 packageName = "com.example.app",
-                profileKey = "google_panther",
+                profileKey = "google_panther_a13",
                 overrides = mapOf(FieldKey.BUILD_MODEL.id to "GVU6C-EDITED"),
             ),
         )

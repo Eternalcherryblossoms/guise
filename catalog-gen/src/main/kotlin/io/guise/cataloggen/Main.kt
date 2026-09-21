@@ -38,8 +38,8 @@ fun main(args: Array<String>) {
 
     when (mode) {
         "--adopt" -> adopt(seedFile, catalogFile)
-        "--write" -> write(seedFile, catalogFile, provenanceFile)
-        "--check" -> check(seedFile, catalogFile)
+        "--write" -> write(root, seedFile, catalogFile, provenanceFile)
+        "--check" -> check(root, seedFile, catalogFile)
         else -> {
             System.err.println("usage: catalog-gen [--check|--write|--adopt]")
             exitProcess(2)
@@ -59,6 +59,30 @@ private fun loadSeed(seedFile: File): SeedCorpus {
         System.err.println("seed corpus at ${seedFile.path} could not be parsed: ${e.message}")
         exitProcess(2)
     }
+}
+
+/**
+ * Fetched Pixel builds, combined with the hand-maintained per-model facts.
+ *
+ * A missing snapshot is not an error. The catalog must be reproducible from what is committed, so
+ * a checkout without `catalog/raw/` still generates -- it simply produces the hand-vouched
+ * entries alone, and says so. Making it fatal would mean the generator could not run offline,
+ * which is the property that makes `--check` worth having.
+ */
+private fun loadPixel(root: File): PixelSource.Result {
+    val snapshot = File(root, PixelSource.SNAPSHOT_PATH)
+    val hardwareFile = File(root, Generator.PIXEL_HARDWARE_PATH)
+    if (!snapshot.exists()) {
+        println("no Pixel snapshot at ${snapshot.path}; generating from the seed alone")
+        return PixelSource.Result()
+    }
+    val table = try {
+        strictJson.decodeFromString(PixelHardwareTable.serializer(), hardwareFile.readText())
+    } catch (e: Exception) {
+        System.err.println("pixel hardware table at ${hardwareFile.path} could not be parsed: ${e.message}")
+        exitProcess(2)
+    }
+    return PixelSource.seeds(PixelSource.load(snapshot), table.models)
 }
 
 private fun adopt(seedFile: File, catalogFile: File) {
@@ -93,8 +117,8 @@ private fun adopt(seedFile: File, catalogFile: File) {
     println("every device now needs a `source`. Then run --write.")
 }
 
-private fun write(seedFile: File, catalogFile: File, provenanceFile: File) {
-    val output = report(loadSeed(seedFile))
+private fun write(root: File, seedFile: File, catalogFile: File, provenanceFile: File) {
+    val output = report(loadSeed(seedFile), loadPixel(root))
     if (output.errors.isNotEmpty()) {
         System.err.println("\nrefusing to write: the seed corpus does not pass its own gates")
         exitProcess(1)
@@ -107,8 +131,8 @@ private fun write(seedFile: File, catalogFile: File, provenanceFile: File) {
     println("wrote ${provenanceFile.path}")
 }
 
-private fun check(seedFile: File, catalogFile: File) {
-    val output = report(loadSeed(seedFile))
+private fun check(root: File, seedFile: File, catalogFile: File) {
+    val output = report(loadSeed(seedFile), loadPixel(root))
     if (output.errors.isNotEmpty()) exitProcess(1)
 
     if (!catalogFile.exists()) {
@@ -137,8 +161,8 @@ private fun check(seedFile: File, catalogFile: File) {
     println("\ncatalog matches the seed")
 }
 
-private fun report(corpus: SeedCorpus): Generator.Output {
-    val output = Generator.generate(corpus)
+private fun report(corpus: SeedCorpus, pixel: PixelSource.Result): Generator.Output {
+    val output = Generator.generate(corpus, pixel)
     println(
         "generated ${output.catalog.devices.size} devices over ${output.catalog.socs.size} SoCs; " +
             "memory tiers ${output.catalog.coveredRamGiB().joinToString(", ")}",

@@ -259,233 +259,6 @@
     "devices": [
         {
             "profile": {
-                "key": "google_bluejay",
-                "name": "Google Pixel 6a",
-                "brand": "google",
-                "manufacturer": "Google",
-                "model": "GX7AS",
-                "product": "bluejay",
-                "device": "bluejay",
-                "androidRelease": "12",
-                "sdkInt": 31,
-                "securityPatch": "2022-06-05",
-                "buildId": "SP2A.220505.002",
-                "buildIncremental": "8702685",
-                "buildType": "user",
-                "buildTags": "release-keys",
-                "buildHost": "abfarm-release-rbe-64-0010",
-                "buildUser": "android-build",
-                "buildTimeMs": 0,
-                "displayId": "SP2A.220505.002",
-                "bootloader": "bluejay-1.2-8734334",
-                "socKey": "gs101",
-                "display": {
-                    "widthPx": 1080,
-                    "heightPx": 2400,
-                    "densityDpi": 429,
-                    "refreshRates": [
-                        60.0
-                    ]
-                },
-                "ramBytes": 6442450944
-            },
-            "source": "Hand-entered from published Pixel factory-image build data (Android 12, SP2A.220505.002, patch 2022-06-05).",
-            "sourceUrl": "https://developers.google.com/android/images",
-            "verified": false,
-            "note": "6 GB tier."
-        },
-        {
-            "profile": {
-                "key": "google_husky",
-                "name": "Google Pixel 8 Pro",
-                "brand": "google",
-                "manufacturer": "Google",
-                "model": "GC3VE",
-                "product": "husky",
-                "device": "husky",
-                "androidRelease": "14",
-                "sdkInt": 34,
-                "securityPatch": "2024-02-05",
-                "buildId": "UQ1A.240205.004",
-                "buildIncremental": "11228896",
-                "buildType": "user",
-                "buildTags": "release-keys",
-                "buildHost": "abfarm-release-rbe-64-0008",
-                "buildUser": "android-build",
-                "buildTimeMs": 0,
-                "displayId": "UQ1A.240205.004",
-                "bootloader": "husky-14.3-11261976",
-                "socKey": "gs301",
-                "display": {
-                    "widthPx": 1344,
-                    "heightPx": 2992,
-                    "densityDpi": 489,
-                    "refreshRates": [
-                        60.0,
-                        120.0
-                    ]
-                },
-                "ramBytes": 12884901888
-            },
-            "source": "Hand-entered from published Pixel factory-image build data (Android 14, UQ1A.240205.004, patch 2024-02-05).",
-            "sourceUrl": "https://developers.google.com/android/images",
-            "verified": false,
-            "note": "Shares shiba's build; differs only in memory and display."
-        },
-        {
-            "profile": {
-                "key": "google_oriole",
-                "name": "Google Pixel 6",
-                "brand": "google",
-                "manufacturer": "Google",
-                "model": "GB7N6",
-                "product": "oriole",
-                "device": "oriole",
-                "androidRelease": "12",
-                "sdkInt": 31,
-                "securityPatch": "2021-10-05",
-                "buildId": "SP1A.210812.015",
-                "buildIncremental": "7679548",
-                "buildType": "user",
-                "buildTags": "release-keys",
-                "buildHost": "abfarm-release-rbe-64-0013",
-                "buildUser": "android-build",
-                "buildTimeMs": 1633463659000,
-                "displayId": "SP1A.210812.015",
-                "bootloader": "slider-1.0-7718710",
-                "socKey": "gs101",
-                "display": {
-                    "widthPx": 1080,
-                    "heightPx": 2400,
-                    "densityDpi": 411,
-                    "refreshRates": [
-                        60.0,
-                        90.0
-                    ]
-                },
-                "ramBytes": 8589934592
-            },
-            "source": "Hand-entered from published Pixel factory-image build data (Android 12, SP1A.210812.015, patch 2021-10-05).",
-            "sourceUrl": "https://developers.google.com/android/images",
-            "verified": false,
-            "note": "Pixel 6 launch build."
-        },
-        {
-            "profile": {
-                "key": "google_panther",
-                "name": "Google Pixel 7",
-                "brand": "google",
-                "manufacturer": "Google",
-                "model": "GVU6C",
-                "product": "panther",
-                "device": "panther",
-                "androidRelease": "13",
-                "sdkInt": 33,
-                "securityPatch": "2022-12-05",
-                "buildId": "TQ1A.221205.011",
-                "buildIncremental": "9243689",
-                "buildType": "user",
-                "buildTags": "release-keys",
-                "buildHost": "abfarm-release-rbe-64-0006",
-                "buildUser": "android-build",
-                "buildTimeMs": 1669761819000,
-                "displayId": "TQ1A.221205.011",
-                "bootloader": "panther-1.1-9032953",
-                "socKey": "gs201",
-                "display": {
-                    "widthPx": 1080,
-                    "heightPx": 2400,
-                    "densityDpi": 416,
-                    "refreshRates": [
-                        60.0,
-                        90.0
-                    ]
-                },
-                "ramBytes": 8589934592
-            },
-            "source": "Hand-entered from published Pixel factory-image build data (Android 13, TQ1A.221205.011, patch 2022-12-05).",
-            "sourceUrl": "https://developers.google.com/android/images",
-            "verified": false,
-            "note": ""
-        },
-        {
-            "profile": {
-                "key": "google_redfin",
-                "name": "Google Pixel 5",
-                "brand": "google",
-                "manufacturer": "Google",
-                "model": "GD1YQ",
-                "product": "redfin",
-                "device": "redfin",
-                "androidRelease": "11",
-                "sdkInt": 30,
-                "securityPatch": "2021-10-05",
-                "buildId": "RQ3A.211001.001",
-                "buildIncremental": "7641976",
-                "buildType": "user",
-                "buildTags": "release-keys",
-                "buildHost": "abfarm-release-rbe-64-0007",
-                "buildUser": "android-build",
-                "buildTimeMs": 1633115157000,
-                "displayId": "RQ3A.211001.001",
-                "bootloader": "r3-0.4-7379435",
-                "socKey": "sm7250",
-                "display": {
-                    "widthPx": 1080,
-                    "heightPx": 2340,
-                    "densityDpi": 432,
-                    "refreshRates": [
-                        60.0,
-                        90.0
-                    ]
-                },
-                "ramBytes": 8589934592
-            },
-            "source": "Hand-entered from published Pixel factory-image build data (Android 11, RQ3A.211001.001, patch 2021-10-05). Not yet re-read from Google's own tables by the generator.",
-            "sourceUrl": "https://developers.google.com/android/images",
-            "verified": false,
-            "note": "Aug 2022 Pixel 5 build; the last before Android 13."
-        },
-        {
-            "profile": {
-                "key": "google_shiba",
-                "name": "Google Pixel 8",
-                "brand": "google",
-                "manufacturer": "Google",
-                "model": "GKWS6",
-                "product": "shiba",
-                "device": "shiba",
-                "androidRelease": "14",
-                "sdkInt": 34,
-                "securityPatch": "2024-02-05",
-                "buildId": "UQ1A.240205.004",
-                "buildIncremental": "11228896",
-                "buildType": "user",
-                "buildTags": "release-keys",
-                "buildHost": "abfarm-release-rbe-64-0008",
-                "buildUser": "android-build",
-                "buildTimeMs": 0,
-                "displayId": "UQ1A.240205.004",
-                "bootloader": "shiba-14.3-11261976",
-                "socKey": "gs301",
-                "display": {
-                    "widthPx": 1080,
-                    "heightPx": 2400,
-                    "densityDpi": 428,
-                    "refreshRates": [
-                        60.0,
-                        120.0
-                    ]
-                },
-                "ramBytes": 8589934592
-            },
-            "source": "Hand-entered from published Pixel factory-image build data (Android 14, UQ1A.240205.004, patch 2024-02-05).",
-            "sourceUrl": "https://developers.google.com/android/images",
-            "verified": false,
-            "note": ""
-        },
-        {
-            "profile": {
                 "key": "xiaomi_alioth",
                 "name": "Redmi K40 / POCO F3",
                 "brand": "Redmi",
@@ -635,6 +408,44 @@
             "sourceUrl": "https://xiaomifirmwareupdater.com/",
             "verified": false,
             "note": "12 GB tier."
+        },
+        {
+            "profile": {
+                "key": "xiaomi_houji_16gb",
+                "name": "Xiaomi 14 (16 GB)",
+                "brand": "Xiaomi",
+                "manufacturer": "Xiaomi",
+                "model": "23127PN0CC",
+                "product": "houji",
+                "device": "houji",
+                "androidRelease": "14",
+                "sdkInt": 34,
+                "securityPatch": "2023-12-01",
+                "buildId": "UKQ1.230804.001",
+                "buildIncremental": "V1.0.6.0.UNCCNXM",
+                "buildType": "user",
+                "buildTags": "release-keys",
+                "buildHost": "c3-miui-ota-bd068.bj",
+                "buildUser": "builder",
+                "buildTimeMs": 0,
+                "displayId": "UKQ1.230804.001",
+                "bootloader": "unknown",
+                "socKey": "sm8650",
+                "display": {
+                    "widthPx": 1200,
+                    "heightPx": 2670,
+                    "densityDpi": 460,
+                    "refreshRates": [
+                        60.0,
+                        120.0
+                    ]
+                },
+                "ramBytes": 17179869184
+            },
+            "source": "Hand-entered from HyperOS release notes and the device's published ROM (HyperOS 1.0.6.0.UNCCNXM on Android 14). Not verified against the build itself.",
+            "sourceUrl": "https://xiaomifirmwareupdater.com/",
+            "verified": false,
+            "note": "16 GB SKU of the same model. Every build field is identical to the 12 GB entry because memory appears in no build artifact -- only the nominal capacity differs."
         },
         {
             "profile": {
@@ -796,9 +607,7 @@
             12,
             16
         ],
-        "waivedRamGiB": {
-            "16": "No verified 16 GB entry exists. Pixel 9 Pro and 9 Pro XL ship 16 GB, and the generator is meant to take them from Google's own build tables; until that lands, a 16 GB handset -- and one of the two test devices here -- has nothing coherent to wear."
-        },
+        "waivedRamGiB": {},
         "outOfScopeRamGiB": {
             "4": "Low-end handsets do ship 4 GB, but none received a modern Android release in volume, and a profile is only usable on releases its handset actually received. Revisit together with per-release build entries.",
             "24": "24 GB handsets are rare enough that claiming to be one is itself distinctive, which is the opposite of the point. Revisit if that changes."

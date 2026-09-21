@@ -83,14 +83,23 @@ object RamTier {
  * What the *handset* says about itself, as opposed to what a profile claims.
  *
  * These are precisely the facts no layer of Guise can change, which makes them the only honest
- * yardstick for judging whether a profile fits the machine it would be worn on. Both are cheap to
- * read from an ordinary app: `ActivityManager.MemoryInfo` and `Build.SUPPORTED_ABIS`.
+ * yardstick for judging whether a profile fits the machine it would be worn on. All three are
+ * cheap to read from an ordinary app: `ActivityManager.MemoryInfo`, `Build.SUPPORTED_ABIS` and
+ * `Build.VERSION`.
  */
 data class HandsetFacts(
     /** `ActivityManager.MemoryInfo.totalMem`. Zero when it could not be read. */
     val reportedRamBytes: Long = 0L,
     /** `Build.SUPPORTED_ABIS`, most-preferred first. */
     val abis: List<String> = emptyList(),
+    /**
+     * `Build.VERSION.RELEASE`.
+     *
+     * Carried here because a build belongs to exactly one Android release. See
+     * [Compatibility.releaseIssue] for why a profile recorded on a different release is unusable
+     * rather than merely imperfect.
+     */
+    val release: String = "",
 )
 
 /**
@@ -110,9 +119,33 @@ object Compatibility {
      */
     fun issues(device: DeviceProfile, soc: SocProfile, handset: HandsetFacts): List<String> =
         buildList {
+            releaseIssue(device, handset)?.let(::add)
             ramIssue(device, handset)?.let(::add)
             abiIssue(soc, handset)?.let(::add)
         }
+
+    /**
+     * Whether the profile was recorded on the Android release this handset runs.
+     *
+     * This is the strictest of the three checks and the least obvious. `RuntimeVersion` already
+     * keeps the *reported* release honest, and `BuildIdScheme.alignToRelease` repairs the
+     * version token of a build ID that names the wrong era -- but a repair is not a match. The
+     * date inside the build ID, the security patch level and the incremental version all still
+     * belong to the release the build was made for, so a profile captured on Android 12 worn on
+     * Android 16 describes a handset that never existed: no Pixel 6 ran Android 16 with a 2022
+     * security patch.
+     *
+     * The catalog answers this by carrying one entry per (device, release), which is why the
+     * check is worth making: it turns "pick a plausible-looking profile" into "pick one that is
+     * actually possible", and the picker can say how many of those exist.
+     */
+    fun releaseIssue(device: DeviceProfile, handset: HandsetFacts): String? {
+        if (handset.release.isBlank() || device.androidRelease.isBlank()) return null
+        if (device.androidRelease == handset.release) return null
+        return "版本不符：该档案来自 Android ${device.androidRelease}，本机是 Android " +
+            "${handset.release}。构建号的日期、安全补丁和增量版本都属于 Android " +
+            "${device.androidRelease}——穿在别的版本上会得到一台从没出厂过的机器。"
+    }
 
     fun ramIssue(device: DeviceProfile, handset: HandsetFacts): String? {
         if (device.ramBytes <= 0L || handset.reportedRamBytes <= 0L) return null

@@ -24,6 +24,7 @@ import io.guise.core.profile.RamTier
 object Generator {
 
     const val SEED_PATH = "catalog/seed/corpus.json"
+    const val PIXEL_HARDWARE_PATH = "catalog/seed/pixel-hardware.json"
     const val CATALOG_PATH = "xposed/src/main/assets/catalog.json"
     const val PROVENANCE_PATH = "catalog/PROVENANCE.md"
 
@@ -38,25 +39,50 @@ object Generator {
         val notes: List<String>,
     )
 
-    fun generate(corpus: SeedCorpus): Output {
+    fun generate(corpus: SeedCorpus, pixel: PixelSource.Result = PixelSource.Result()): Output {
         val errors = mutableListOf<String>()
         val notes = mutableListOf<String>()
 
+        // Fetched builds become entries here, combined with the hand-maintained per-model facts a
+        // build cannot supply. One entry per (device, release, memory) -- see PixelSource for why
+        // the release is part of the identity rather than a detail.
+        val allSeeds = corpus.devices + pixel.seeds
+        if (pixel.seeds.isNotEmpty()) {
+            notes += "${pixel.seeds.size} entries generated from ${pixel.buildsAvailable} fetched " +
+                "Pixel builds across " +
+                "${pixel.seeds.map { it.profile.product }.distinct().size} models"
+        }
+        if (pixel.unusable.isNotEmpty()) {
+            val described = pixel.unusable.filter { it.second.contains("no usable build") }
+            val undescribed = pixel.unusable.filter { it.second.contains("no SoC facts") }
+            if (described.isNotEmpty()) {
+                notes += "described by the seed but with no usable build: " +
+                    described.joinToString(", ") { it.first }
+            }
+            if (undescribed.isNotEmpty()) {
+                // The honest size of the gap, and the exact set a contributor could close.
+                notes += "${undescribed.size} models have real builds available but no entry, " +
+                    "because their SoC is not in the table and the GPU renderer string cannot be " +
+                    "obtained from any published file: " +
+                    undescribed.map { it.first }.sorted().joinToString(", ")
+            }
+        }
+
         // Gate 1: attribution. Checked before anything else is built, because an unattributed
         // entry is a provenance problem rather than a data problem and the message should say so.
-        corpus.devices.forEachIndexed { index, seed ->
+        allSeeds.forEachIndexed { index, seed ->
             if (seed.source.isBlank()) {
-                errors += "device #$index ('${seed.profile.key}') has no source; " +
+                errors += "entry #$index ('${seed.profile.key}') has no source; " +
                     "every entry must say where its build values came from " +
                     "(a capture, a stock image, a contributor) -- an unattributed value is " +
                     "indistinguishable from an invented one"
             }
         }
 
-        val duplicateKeys = corpus.devices.groupBy { it.profile.key }.filterValues { it.size > 1 }.keys
+        val duplicateKeys = allSeeds.groupBy { it.profile.key }.filterValues { it.size > 1 }.keys
         duplicateKeys.forEach { errors += "device key '$it' appears more than once" }
 
-        val devices: Map<String, DeviceProfile> = corpus.devices
+        val devices: Map<String, DeviceProfile> = allSeeds
             .associate { it.profile.key to it.profile }
 
         val catalog = DeviceCatalog(
@@ -96,16 +122,36 @@ object Generator {
             }
         }
 
-        // Coverage is only half the story, and the other half is the one that quietly makes old
-        // entries unusable: a profile can only be worn on an Android release its handset actually
-        // received. The catalog records one build per device, so a Pixel 3a entry used on an
-        // Android 16 handset produces a fingerprint for a combination that never shipped. That is
-        // reported here rather than silently accepted, and closing it means one build entry per
-        // (device, release) -- see docs/FINDINGS.md.
-        val releasesCovered = corpus.devices.map { it.profile.androidRelease }.distinct().sorted()
-        notes += "catalog entries exist for Android $releasesCovered only; a profile worn on a " +
-            "release its handset never received (e.g. a 2021 mid-range entry on Android 16) is " +
-            "an impossible combination, and per-release build entries are still to come"
+        // A build belongs to one Android release, so the release is part of an entry's identity
+        // rather than a detail. Reported because it is also the dimension that decides whether a
+        // handset running a given release has anything to wear at all.
+        val releasesCovered = allSeeds.map { it.profile.androidRelease }
+            .distinct()
+            .sortedBy { it.filter(Char::isDigit).take(2).toIntOrNull() ?: 0 }
+        notes += "catalog covers Android ${releasesCovered.joinToString(", ")}; a handset running " +
+            "a release with no entry has nothing coherent to wear, which is what " +
+            "Compatibility.releaseIssue tells the user"
+
+        // Coverage is two-dimensional, and checking the dimensions separately is not enough.
+        // Covering the 16 GB tier and covering Android 16 are both true of this catalog, and a
+        // 16 GB handset on Android 16 still has nothing to wear, because the only 16 GB entry is
+        // an Android 14 build. The empty cells are the actionable number; the per-dimension
+        // totals were the reassuring one.
+        val tiers = catalog.coveredRamGiB().filter { it in corpus.policy.requiredRamGiB }
+        val releases = allSeeds.map { it.profile.androidRelease }.distinct()
+        val emptyCells = tiers.flatMap { tier ->
+            releases.filter { release ->
+                allSeeds.none {
+                    RamTier.nominalGiB(it.profile.ramBytes) == tier &&
+                        it.profile.androidRelease == release
+                }
+            }.map { release -> "$tier GB/Android $release" }
+        }
+        if (emptyCells.isNotEmpty()) {
+            notes += "${emptyCells.size} empty (memory tier x release) cells: " +
+                emptyCells.joinToString(", ") +
+                " -- a handset in one of them has no fully compatible entry"
+        }
 
         corpus.policy.requiredAbis.forEach { abi ->
             if (corpus.socs.values.none { abi in it.abis }) {
@@ -123,9 +169,9 @@ object Generator {
         // Reported rather than enforced. A hard gate on this would have to be set at zero to mean
         // anything, and that would block the corpus from being written at all -- the honest move
         // is to keep the number visible until it is zero, not to make it invisible by fiat.
-        val unverified = corpus.devices.filter { !it.verified }
+        val unverified = allSeeds.filter { !it.verified }
         if (unverified.isNotEmpty()) {
-            notes += "${unverified.size} of ${corpus.devices.size} entries are unverified " +
+            notes += "${unverified.size} of ${allSeeds.size} entries are unverified " +
                 "(hand-entered, not read off a published build or a handset): " +
                 unverified.map { it.profile.key }.sorted().joinToString(", ")
         }
@@ -133,7 +179,7 @@ object Generator {
         return Output(
             catalog = catalog,
             catalogJson = ConfigCodec.encodeCatalog(catalog).trimEnd() + "\n",
-            provenance = provenanceOf(corpus, catalog),
+            provenance = provenanceOf(corpus, allSeeds, catalog),
             errors = errors,
             notes = notes,
         )
@@ -145,7 +191,11 @@ object Generator {
      * Generated rather than hand-written so it cannot fall behind the corpus, and so a reviewer
      * of a catalog diff has the evidence in the same change.
      */
-    private fun provenanceOf(corpus: SeedCorpus, catalog: DeviceCatalog): String = buildString {
+    private fun provenanceOf(
+        corpus: SeedCorpus,
+        allSeeds: List<DeviceSeed>,
+        catalog: DeviceCatalog,
+    ): String = buildString {
         appendLine("# Where the catalog came from")
         appendLine()
         appendLine("Generated by `:catalog-gen` from `$SEED_PATH`. **Do not edit by hand** -- edit")
@@ -161,7 +211,7 @@ object Generator {
         appendLine()
         appendLine("| Device | Key | Memory | Verified | Source | Link |")
         appendLine("|---|---|---|---|---|---|")
-        corpus.devices.sortedBy { it.profile.key }.forEach { seed ->
+        allSeeds.sortedBy { it.profile.key }.forEach { seed ->
             val p = seed.profile
             val link = if (seed.sourceUrl.isBlank()) "--" else "[evidence](${seed.sourceUrl})"
             appendLine(
@@ -171,10 +221,10 @@ object Generator {
             )
         }
         appendLine()
-        val unverified = corpus.devices.count { !it.verified }
+        val unverified = allSeeds.count { !it.verified }
         if (unverified > 0) {
             appendLine(
-                "**$unverified of ${corpus.devices.size} entries are unverified.** They were",
+                "**$unverified of ${allSeeds.size} entries are unverified.** They were",
             )
             appendLine(
                 "entered by hand from published specifications and nobody has re-checked them",
@@ -207,15 +257,39 @@ object Generator {
                 appendLine("  - **$tier GB** -- $why")
             }
         }
+        // Coverage is two-dimensional and checking the dimensions separately is not enough.
+        // Covering the 16 GB tier and covering Android 16 are both true of this catalog, and a
+        // 16 GB handset on Android 16 still has nothing to wear, because the only 16 GB entry is
+        // an Android 14 build. Named cells rather than a boolean, because the boolean was the
+        // reassuring number and the cells are the actionable one.
+        val tiers = catalog.coveredRamGiB().filter { it in corpus.policy.requiredRamGiB }
+        val releases = allSeeds.map { it.profile.androidRelease }.distinct()
+        val emptyCells = tiers.flatMap { tier ->
+            releases.filter { release ->
+                allSeeds.none {
+                    RamTier.nominalGiB(it.profile.ramBytes) == tier &&
+                        it.profile.androidRelease == release
+                }
+            }.map { release -> "$tier GB on Android $release" }
+        }
+        if (emptyCells.isNotEmpty()) {
+            appendLine("- **Empty (memory tier x release) cells:** " +
+                emptyCells.joinToString(", "))
+            appendLine("  - A handset in one of these has no fully compatible entry. That is the")
+            appendLine("    real coverage measure: the two dimensions can each look complete while")
+            appendLine("    their intersection is empty.")
+        }
         appendLine(
             "- Android releases with entries: " +
-                corpus.devices.map { it.profile.androidRelease }.distinct().sorted()
+                allSeeds.map { it.profile.androidRelease }.distinct()
+                    .sortedBy { it.filter(Char::isDigit).take(2).toIntOrNull() ?: 0 }
                     .joinToString(", ") { "Android $it" },
         )
         appendLine()
-        appendLine("One build per device means one release per device. A profile worn on a release")
-        appendLine("its handset never received is an impossible combination, so releases without an")
-        appendLine("entry are a gap in the corpus rather than a property of the handset.")
+        appendLine("One entry per (device, release). A build belongs to exactly one Android release,")
+        appendLine("so a profile worn on any other release describes a handset that never shipped --")
+        appendLine("its build ID carries the wrong date and its security patch the wrong era.")
+        appendLine("`Compatibility.releaseIssue` surfaces that in the picker.")
         appendLine()
         appendLine("## SoCs")
         appendLine()

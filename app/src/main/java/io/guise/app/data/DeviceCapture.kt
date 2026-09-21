@@ -76,6 +76,7 @@ object DeviceCapture {
     fun handsetFacts(context: Context): HandsetFacts = HandsetFacts(
         reportedRamBytes = reportedRamBytes(context),
         abis = Build.SUPPORTED_ABIS?.toList().orEmpty(),
+        release = Build.VERSION.RELEASE.orEmpty(),
     )
 
     /** `ActivityManager.MemoryInfo.totalMem`, or 0 when it cannot be read. */

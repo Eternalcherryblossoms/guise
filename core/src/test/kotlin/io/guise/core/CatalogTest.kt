@@ -91,21 +91,44 @@ class CatalogTest {
     }
 
     @Test
-    fun `bundled catalog covers three memory tiers`() {
-        // Counting devices is the wrong measure and this is why: fourteen devices serve three
-        // memory tiers, because twelve of them inherited one figure from their SoC.
+    fun `bundled catalog covers every required memory tier`() {
+        // This assertion used to read `assertEquals(listOf(6, 8, 12), ...)` with a comment
+        // explaining why thirteen devices serving three tiers was worth naming. It is now the
+        // check the comment was asking for: the 16 GB tier -- the one both test handsets needed
+        // and neither could be served by -- is covered.
         val catalog = TestCatalog.load()
-        assertEquals(listOf(6, 8, 12), catalog.coveredRamGiB())
+        assertEquals(listOf(6, 8, 12, 16), catalog.coveredRamGiB())
+        assertEquals(emptyList<Int>(), catalog.uncoveredRamGiB(listOf(6, 8, 12, 16)))
     }
 
     @Test
-    fun `the bundled catalog's 16 GB hole is pinned, not forgotten`() {
-        // A tripwire rather than an endorsement. Device B reports 14 GB -- the 16 GB tier -- and
-        // nothing in the shipped catalog can serve it. The catalog generator is meant to close
-        // this hole from real Pixel build data; whichever change does so must also replace this
-        // test with an assertion that the hole is gone. Asserting the gap keeps it visible
-        // instead of letting it read as "the catalog is fine".
+    fun `the catalog is large enough that one profile is not a signature`() {
+        // Not a target for its own sake. Fourteen entries meant every Guise user presented one of
+        // fourteen handsets; the count is a floor, and the quality gates live in :catalog-gen.
         val catalog = TestCatalog.load()
-        assertEquals(listOf(16), catalog.uncoveredRamGiB(listOf(6, 8, 12, 16)))
+        assertTrue(
+            "expected a catalog of at least 50 profiles, found ${catalog.devices.size}",
+            catalog.devices.size >= 50,
+        )
+    }
+
+    @Test
+    fun `every entry declares the Android release its build belongs to`() {
+        // A build belongs to exactly one release: its build ID carries that era's date and its
+        // security patch that era's level. An entry without a release cannot be judged by
+        // Compatibility.releaseIssue, so the field is not optional in practice.
+        val catalog = TestCatalog.load()
+        val blank = catalog.devices.values.filter { it.androidRelease.isBlank() }.map { it.key }
+        assertTrue("entries with no release: $blank", blank.isEmpty())
+    }
+
+    @Test
+    fun `the catalog covers the releases both test handsets run`() {
+        // Device A runs Android 14 and device B Android 16. An entry per (device, release) is
+        // only worth the space if the releases actually in use are among them.
+        val catalog = TestCatalog.load()
+        val releases = catalog.devices.values.map { it.androidRelease }.toSet()
+        assertTrue("no entries for Android 14: $releases", "14" in releases)
+        assertTrue("no entries for Android 16: $releases", "16" in releases)
     }
 }

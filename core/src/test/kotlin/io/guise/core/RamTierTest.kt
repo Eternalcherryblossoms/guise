@@ -97,9 +97,37 @@ class RamTierTest {
         assertNull("nothing read means nothing claimed", Compatibility.abiIssue(soc, HandsetFacts()))
     }
 
+    @Test
+    fun `a profile from another Android release is refused`() {
+        // The subtle one. RuntimeVersion already keeps the *reported* release honest and
+        // alignToRelease repairs the version token of the build ID -- but the date inside that
+        // build ID and the security patch beside it still belong to the release the build was
+        // made for, so the combination describes a handset that never shipped.
+        val issue = Compatibility.releaseIssue(device(8 * gib, release = "12"), facts(8 * gib, "16"))
+        assertNotNull(issue)
+        assertTrue(issue!!.contains("12"))
+        assertTrue(issue.contains("16"))
+
+        assertNull(Compatibility.releaseIssue(device(8 * gib, release = "16"), facts(8 * gib, "16")))
+        // Silence when either side is unreadable, for the same reason as the memory check.
+        assertNull(Compatibility.releaseIssue(device(8 * gib, release = ""), facts(8 * gib, "16")))
+    }
+
+    @Test
+    fun `a fully incompatible profile is reported three times over`() {
+        // Not a bug: each line names a different fact the handset owns and the profile cannot
+        // change, and a user deserves all three rather than the first one found.
+        val issues = Compatibility.issues(
+            device(8 * gib, release = "12"),
+            soc(listOf("arm64-v8a")),
+            HandsetFacts(reportedRamBytes = 11 * gib + gib / 2, abis = listOf("armeabi-v7a"), release = "16"),
+        )
+        assertEquals(3, issues.size)
+    }
+
     // ---- fixtures -----------------------------------------------------------
 
-    private fun device(ramBytes: Long) = DeviceProfile(
+    private fun device(ramBytes: Long, release: String = "14") = DeviceProfile(
         key = "test_device",
         name = "Test Device",
         brand = "Test",
@@ -107,7 +135,7 @@ class RamTierTest {
         model = "T1",
         product = "test",
         device = "test",
-        androidRelease = "14",
+        androidRelease = release,
         sdkInt = 34,
         buildId = "UQ1A.240205.004",
         buildIncremental = "1",
@@ -131,5 +159,6 @@ class RamTierTest {
         abis = abis,
     )
 
-    private fun facts(reportedRamBytes: Long) = HandsetFacts(reportedRamBytes = reportedRamBytes)
+    private fun facts(reportedRamBytes: Long, release: String = "") =
+        HandsetFacts(reportedRamBytes = reportedRamBytes, release = release)
 }

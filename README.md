@@ -94,12 +94,17 @@ Guise 的做法不同：
 
 ### 机型库
 
-内置 **14 台机型 / 11 个 SoC**。更重要的是两个机制：
+内置 **62 个档案 / 11 个 SoC / Android 11–17**，其中 **53 个直接从 Google 官方 OTA 元数据读出**（不是转录）。
 
-- **抓取本机** —— 从真实设备读取全部字段生成档案，100% 准确
-- **用户档案覆盖** —— 自己抓的档案优先于内置条目
+每个档案是「一台机型 + 一个 Android 版本 + 一个内存配置」：
 
-内置条目的身份字段（品牌/型号/代号/SoC/屏幕）是准确转录的；**构建元数据是格式正确的示例，不是真实转储**——这类数据无法从规格表可靠获得。文件里明确标注了哪一条是真实抓取。
+- **一个版本一个档案** —— 构建号属于唯一一个 Android 版本。`alignToRelease` 只能修版本代号，构建号里的**日期**和安全补丁仍然属于它们出厂的那个年代——把 Android 12 的档案穿在 Android 16 上，描述的是一台从没出厂过的机器。所以分开成档案，管理端也会直接告诉你哪些不相容。
+- **一个内存配置一个档案** —— 内存不出现在任何构建产物里，所以同一机型的不同内存版本**共用同一份构建**，只有标称容量不同。
+- **抓取本机** —— 从真实设备读取全部字段生成档案，100% 准确，且记录的 RAM 也是真的。
+
+数据来源与逐条出处见 [`catalog/PROVENANCE.md`](catalog/PROVENANCE.md)（生成物）。每一条都写明来源，并标注**是否经过核实**：62 条里 8 条未核实。**这不是形式主义**——凭空编的 build ID 会造出「世界上只有你有」的指纹，比用一个常见的真指纹更显眼。
+
+机型库是**生成**的，不是手写的，见「从源码构建」。生成器会打印还有哪些覆盖空洞：目前 **8 个「内存档 × 版本」格子是空的**，其中 `16 GB / Android 16` 一台可穿的都没有。
 
 ### 诊断探针（独立应用）
 
@@ -396,14 +401,28 @@ apps you never meant to touch.
 
 ### Device catalog
 
-**14 devices across 11 SoCs** are bundled. Two mechanisms matter more than the numbers:
+**62 profiles across 11 SoCs and Android 11-17**, of which **53 are read directly from Google's own
+OTA metadata** rather than transcribed.
 
-- **Capture this device** -- reads every field from the real handset, 100% accurate
-- **User catalog overlay** -- your captures take precedence over bundled entries
+One profile is "one model + one Android release + one memory configuration":
 
-Identity fields (brand, model, codenames, SoC, display) in the bundled entries are transcribed
-accurately. **Build metadata is format-correct, not a verified dump** -- that data cannot be
-transcribed reliably from a spec sheet. The file says which entry is a real capture.
+- **One entry per release.** A build belongs to exactly one Android release. `alignToRelease` can
+  repair a build ID's version token, but the *date* inside it and the security patch beside it
+  still belong to the era they were made in -- an Android 12 profile worn on an Android 16 handset
+  describes a machine that never shipped. So they are separate entries, and the picker says which
+  ones do not fit.
+- **One entry per memory configuration.** Memory appears in no build artifact, so two memory SKUs
+  of one model share a build byte for byte and differ only in nominal capacity.
+- **Capture this device** -- reads every field from the real handset, including its memory.
+
+Per-entry provenance is in [`catalog/PROVENANCE.md`](catalog/PROVENANCE.md), which states its
+source and whether it is **verified**: 8 of the 62 are not. This is not bookkeeping -- an invented
+build ID yields a fingerprint matching no shipped handset, and unique is more conspicuous than
+common.
+
+The catalog is **generated, not written**; see "Building from source". The generator also prints
+the coverage holes: **8 (memory tier x release) cells are still empty**, including
+`16 GB / Android 16`, for which no profile fits at all.
 
 ### The probe (a separate app)
 
