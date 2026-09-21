@@ -7,6 +7,7 @@ import io.guise.probe.checks.AttestationCheck
 import io.guise.probe.checks.CodecVendorCheck
 import io.guise.probe.checks.Facts
 import io.guise.probe.checks.FingerprintShapeCheck
+import io.guise.probe.checks.GpuStringCheck
 import io.guise.probe.checks.InjectionCheck
 import io.guise.probe.checks.NativePropertyCheck
 import io.guise.probe.checks.NativeSoCCheck
@@ -57,6 +58,7 @@ class ProbeRunner(private val context: Context) {
             NativePropertyCheck(),
             FingerprintShapeCheck(),
             NativeSoCCheck(),
+            GpuStringCheck(),
             CodecVendorCheck(),
             PhysicalCheck(),
             InjectionCheck(),

@@ -16,8 +16,8 @@ android {
         applicationId = "io.guise"
         minSdk = 28
         targetSdk = 36
-        versionCode = 17
-        versionName = "5.8.0"
+        versionCode = 18
+        versionName = "5.8.1"
         resourceConfigurations += listOf("zh", "en")
     }
 

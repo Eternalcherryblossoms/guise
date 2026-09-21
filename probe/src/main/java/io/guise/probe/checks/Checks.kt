@@ -1,6 +1,9 @@
 package io.guise.probe.checks
 
 import android.content.Context
+import android.opengl.EGL14
+import android.opengl.EGLConfig
+import android.opengl.GLES20
 import android.os.Build
 import io.guise.probe.model.AggregateReading
 import io.guise.probe.model.CheckResult
@@ -8,6 +11,143 @@ import io.guise.probe.model.Finding
 import io.guise.probe.model.ProbeCheck
 import io.guise.probe.model.Verdict
 import kotlin.math.abs
+
+/**
+ * The GPU driver strings, read through a real GL context.
+ *
+ * This check exists for a specific reason: `GL_RENDERER` is the one value the device catalog
+ * needs that **cannot be obtained from any published file.** It is answered by the vendor's
+ * userspace driver at runtime, so a `build.prop` states a platform codename (`kona`, `pineapple`,
+ * `mt6765`) and nothing about what the silicon says when asked. Every SoC entry in the catalog
+ * had to be created by running on that chip, which is why the catalog covers the chips it covers
+ * and no more -- 2,957 firmware dumps are held back for exactly this one missing fact.
+ *
+ * Reading it needs a current GL context, which an app can make without any permission: a 1x1
+ * pbuffer is enough, because `glGetString` does not care about the surface.
+ *
+ * ## Reading it honestly
+ *
+ * If Guise is covering *this* app, the value below is the spoofed one -- which is useful, because
+ * it shows the GPU channel working. To contribute a **new** SoC entry, run the probe with the app
+ * outside Guise's scope so the driver answers for itself. The check says which case it is
+ * looking at rather than leaving the reader to guess.
+ */
+class GpuStringCheck : ProbeCheck {
+    override val id = "gpu-string"
+    override val title = "GPU 驱动字符串（GL_VENDOR / GL_RENDERER）"
+    override val rationale =
+        "GL_RENDERER 由驱动的用户态库在运行时回答，任何已发布文件里都没有它——" +
+            "build.prop 只写平台代号。所以机型库的每个 SoC 条目都只能在真机上跑一次才能建立。" +
+            "这一项把那个值读出来：它既验证 GPU 通道是否生效，也是贡献新 SoC 条目所缺的那一个事实。"
+
+    override suspend fun run(context: Context): CheckResult {
+        val gpu = readGpuStrings()
+        val platform = Props.get("ro.board.platform").orEmpty().ifBlank { "(空)" }
+
+        if (gpu == null) {
+            return CheckResult(
+                id = id,
+                title = title,
+                verdict = Verdict.UNSUPPORTED,
+                headline = "无法建立 GL 上下文，读不到驱动字符串",
+                findings = listOf(
+                    Finding(
+                        label = "ro.board.platform（框架声明）",
+                        observed = platform,
+                    ),
+                    Finding(
+                        label = "为什么这很重要",
+                        observed = "1x1 pbuffer 建立失败",
+                        verdict = Verdict.INFO,
+                        detail = "这一项需要能创建 EGL 上下文。读不到就是「没测出来」，" +
+                            "不是「没问题」——而它正好是机型库唯一无法从已发布文件里拿到的事实。",
+                    ),
+                ),
+            )
+        }
+
+        val (vendor, renderer, version) = gpu
+        return CheckResult(
+            id = id,
+            title = title,
+            verdict = Verdict.INFO,
+            headline = "$vendor / $renderer",
+            findings = listOf(
+                Finding(label = "GL_VENDOR", observed = vendor.ifBlank { "(空)" }),
+                Finding(label = "GL_RENDERER", observed = renderer.ifBlank { "(空)" }),
+                Finding(label = "GL_VERSION", observed = version.ifBlank { "(空)" }),
+                Finding(label = "ro.board.platform（框架声明）", observed = platform),
+                Finding(
+                    label = "这个值怎么用",
+                    observed = "GL_RENDERER=$renderer · platform=$platform",
+                    verdict = Verdict.INFO,
+                    detail = "如果 Guise 正作用于本应用，上面是伪装后的值——那说明 GPU 通道在工作。" +
+                        "要为一个**新的 SoC** 建立条目，请把探针移出 Guise 作用域再跑一次，" +
+                        "让驱动自己回答：条目需要的就是这一行加上平台代号、ro.hardware、" +
+                        "ro.product.board 和 ABI 列表。",
+                ),
+            ),
+        )
+    }
+}
+
+/**
+ * Builds a throwaway EGL context and asks the driver who it is.
+ *
+ * Everything is torn down in `finally` blocks and every failure returns null rather than
+ * throwing: a diagnostic that crashes the app it is diagnosing is worse than one that reports
+ * UNSUPPORTED.
+ */
+private fun readGpuStrings(): Triple<String, String, String>? {
+    val display = EGL14.eglGetDisplay(EGL14.EGL_DEFAULT_DISPLAY)
+    if (display == EGL14.EGL_NO_DISPLAY) return null
+    val version = IntArray(2)
+    if (!EGL14.eglInitialize(display, version, 0, version, 1)) return null
+    var surface: android.opengl.EGLSurface? = null
+    var glContext: android.opengl.EGLContext? = null
+    try {
+        val configAttribs = intArrayOf(
+            EGL14.EGL_RENDERABLE_TYPE, EGL14.EGL_OPENGL_ES2_BIT,
+            EGL14.EGL_SURFACE_TYPE, EGL14.EGL_PBUFFER_BIT,
+            EGL14.EGL_NONE,
+        )
+        val configs = arrayOfNulls<EGLConfig>(1)
+        val count = IntArray(1)
+        if (!EGL14.eglChooseConfig(display, configAttribs, 0, configs, 0, 1, count, 0)) return null
+        if (count[0] == 0) return null
+        val config = configs[0] ?: return null
+
+        // 1x1: glGetString does not care about the surface, only that a context is current.
+        surface = EGL14.eglCreatePbufferSurface(
+            display, config,
+            intArrayOf(EGL14.EGL_WIDTH, 1, EGL14.EGL_HEIGHT, 1, EGL14.EGL_NONE), 0,
+        )
+        if (surface == EGL14.EGL_NO_SURFACE) return null
+        glContext = EGL14.eglCreateContext(
+            display, config, EGL14.EGL_NO_CONTEXT,
+            intArrayOf(EGL14.EGL_CONTEXT_CLIENT_VERSION, 2, EGL14.EGL_NONE), 0,
+        )
+        if (glContext == EGL14.EGL_NO_CONTEXT) return null
+        if (!EGL14.eglMakeCurrent(display, surface, surface, glContext)) return null
+
+        return Triple(
+            GLES20.glGetString(GLES20.GL_VENDOR).orEmpty(),
+            GLES20.glGetString(GLES20.GL_RENDERER).orEmpty(),
+            GLES20.glGetString(GLES20.GL_VERSION).orEmpty(),
+        )
+    } catch (t: Throwable) {
+        return null
+    } finally {
+        runCatching {
+            EGL14.eglMakeCurrent(
+                display, EGL14.EGL_NO_SURFACE, EGL14.EGL_NO_SURFACE, EGL14.EGL_NO_CONTEXT,
+            )
+            glContext?.let { EGL14.eglDestroyContext(display, it) }
+            surface?.let { EGL14.eglDestroySurface(display, it) }
+        }
+        runCatching { EGL14.eglTerminate(display) }
+    }
+}
 
 /**
  * Compares the Java-visible identity against the same facts read as properties.
@@ -661,7 +801,11 @@ class PhysicalCheck : ProbeCheck {
         // three, and nothing hides that.
         findings += Finding(
             label = "不可伪装、必须与档案匹配的物理事实",
-            observed = "内存 ${memApi?.div(1024 / 1024) ?: "?"} GB · " +
+            // memApi is kB. `memApi.div(1024 / 1024)` looked equivalent and was not: `1024 / 1024`
+            // is Int division and evaluates to 1, so the raw kB figure went out with a "GB" label
+            // -- a real report read "内存 15716184 GB". Floating-point division also gives the
+            // tenth of a GB that tells a 12 GB handset from a 16 GB one.
+            observed = "内存 ${memApi?.let { "%.1f".format(it / 1024.0 / 1024.0) } ?: "?"} GB · " +
                 "ABI ${java["abis"].orEmpty()} · " +
                 "核心 ${apiCores} · 最高 ${native["cpu0MaxKhz"]?.toLongOrNull()?.div(1000) ?: "?"} MHz",
             verdict = Verdict.INFO,
@@ -710,13 +854,29 @@ class CodecVendorCheck : ProbeCheck {
      *
      * Dolby is absent on purpose: `OMX.dolby.*` appears on many vendors' devices because Dolby
      * licenses its codecs, so its presence is not a vendor tell and flagging it would be noise.
+     *
+     * The OEM entries matter more than they look. A prefix need not name a *chip* to be a leak
+     * -- `c2.mi.` and `OMX.mi.` name Xiaomi outright. A probe report from a Redmi handset
+     * wearing an OnePlus profile listed `OMX.mi.×4 c2.mi.×4` and this check called it coherent,
+     * because `mi` was not in this map it contributed no family and the comparison saw only
+     * `qcom` on both sides. The real brand was sitting in the codec list the whole time.
      */
     private val codecVendor = mapOf(
         "c2.mtk." to "mtk", "OMX.MTK." to "mtk",
         "c2.qti." to "qcom", "OMX.qcom." to "qcom",
         "c2.exynos." to "exynos", "OMX.Exynos." to "exynos",
         "c2.google." to "google", "c2.gs101." to "google", "c2.gs201." to "google",
+        "c2.mi." to "xiaomi", "OMX.mi." to "xiaomi",
+        "c2.sec." to "samsung", "OMX.sec." to "samsung",
+        "c2.hisi." to "hisilicon", "OMX.hisi." to "hisilicon",
+        "c2.oplus." to "oppo", "OMX.oplus." to "oppo",
     )
+
+    /**
+     * Vendor-specific prefixes that carry no vendor information, so their presence is expected
+     * on any device and flagging them would be noise.
+     */
+    private val notATell = setOf("c2.dolby.", "OMX.dolby.")
 
     /** Platform codename to the silicon family, so the claim and the codec list can be compared. */
     private fun claimedFamily(platform: String): String? = SocAliases.familyOf(platform)
@@ -768,29 +928,67 @@ class CodecVendorCheck : ProbeCheck {
             observed = if (codecFamilies.isEmpty()) "无" else codecFamilies.joinToString(", "),
         )
 
+        // Two ways a prefix can betray the real device, and the second is the one that was being
+        // missed. Naming a *different* family is an obvious leak. Naming no family this check
+        // recognises is equally a leak -- `c2.mi.` is Xiaomi's, and treating an unrecognised
+        // prefix as harmless is how a probe reports "coherent" while the real brand sits in the
+        // list it just printed. So unrecognised is now reported as unrecognised.
+        val namesOtherFamily = vendorSpecific.keys
+            .mapNotNull { codecVendor[it] }
+            .filter { it != claimedFamily }
+            .toSortedSet()
+        val unexplained = vendorSpecific.keys
+            .filter { it !in codecVendor && it !in notATell }
+            .toSortedSet()
+
+        if (namesOtherFamily.isNotEmpty()) {
+            findings += Finding(
+                label = "指认了别的厂商",
+                observed = namesOtherFamily.joinToString(", "),
+                expected = claimedFamily ?: "(未知)",
+                verdict = Verdict.INCOHERENT,
+                detail = vendorSpecific.keys.filter { codecVendor[it] in namesOtherFamily }
+                    .joinToString("  ") + " —— 这些前缀来自 vendor 配置，直接说出真实品牌/芯片。",
+            )
+        }
+        if (unexplained.isNotEmpty()) {
+            findings += Finding(
+                label = "无法归属的前缀",
+                observed = unexplained.joinToString("  "),
+                verdict = Verdict.INCOHERENT,
+                detail = "这些前缀既不属于通用前缀，也不在这个探针认识的厂商表里。" +
+                    "「不认识」不等于「没问题」——它很可能正是真实厂商的前缀" +
+                    "（例如 c2.mi./OMX.mi. 属于小米），而这份检查之前会把它当成无害而放过。",
+            )
+        }
+
         // The verdict. This is where the check stops reporting and starts judging: the claim
         // and the codec list are two independent statements about the same chip, and they can
         // simply be compared.
         val verdict = when {
             vendorSpecific.isEmpty() -> Verdict.COHERENT
+            // Cannot judge without a claim to judge against.
             claimedFamily == null -> Verdict.INFO
-            codecFamilies.isEmpty() -> Verdict.INFO
-            codecFamilies.size == 1 && codecFamilies.first() == claimedFamily -> Verdict.COHERENT
-            codecFamilies.contains(claimedFamily) -> Verdict.INCOHERENT
-            else -> Verdict.INCOHERENT
+            namesOtherFamily.isNotEmpty() -> Verdict.INCOHERENT
+            unexplained.isNotEmpty() -> Verdict.INCOHERENT
+            else -> Verdict.COHERENT
         }
 
         findings += Finding(
             label = "一致性判定",
             observed = when {
                 claimedFamily == null -> "平台 $platform 不在对照表内"
-                codecFamilies.isEmpty() -> "编解码器列表未指认任何已知厂商"
-                else -> "框架声称 $claimedFamily，编解码器指认 ${codecFamilies.joinToString("/")}"
+                namesOtherFamily.isNotEmpty() ->
+                    "框架声称 $claimedFamily，但编解码器里有 ${namesOtherFamily.joinToString("/")}"
+                unexplained.isNotEmpty() ->
+                    "框架声称 $claimedFamily，另有 ${unexplained.size} 个前缀无法归属"
+                else -> "框架声称 $claimedFamily，编解码器未指认其它厂商"
             },
             verdict = verdict,
             detail = if (verdict == Verdict.INCOHERENT) {
                 "编解码器列表来自 vendor 配置，Java 层不覆盖就会暴露真实芯片。" +
                     "可在 Guise 中对本应用开启「过滤编解码器厂商前缀」来缓解——" +
+                    "它只保留所宣称 SoC 已知的前缀，其余全部隐藏。" +
                     "注意该选项只能过滤不能增加，可能影响播放。"
             } else {
                 null
@@ -801,8 +999,10 @@ class CodecVendorCheck : ProbeCheck {
             id, title, verdict,
             when (verdict) {
                 Verdict.COHERENT -> "编解码器列表与框架声明的芯片一致"
-                Verdict.INCOHERENT ->
-                    "编解码器暴露真实芯片：${vendorSpecific.keys.joinToString(", ")}"
+                Verdict.INCOHERENT -> {
+                    val leaked = (namesOtherFamily + unexplained).joinToString(", ")
+                    "编解码器暴露真实设备：$leaked"
+                }
                 else -> "无法判定"
             },
             findings,
