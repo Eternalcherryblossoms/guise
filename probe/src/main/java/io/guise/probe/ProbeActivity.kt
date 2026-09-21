@@ -7,12 +7,16 @@ import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.compose.setContent
+import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.safeDrawing
+import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
@@ -55,6 +59,10 @@ private enum class Screen(val title: String) {
 class ProbeActivity : ComponentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
+        // targetSdk 36 makes edge-to-edge mandatory whether or not an app asks for it. Calling
+        // this makes the intent explicit and gives the insets below something deterministic to
+        // consume.
+        enableEdgeToEdge()
         super.onCreate(savedInstanceState)
         val runner = ProbeRunner(this)
         val privacyProbe = PrivacyProbe(this)
@@ -89,7 +97,16 @@ class ProbeActivity : ComponentActivity() {
 
             MaterialTheme {
                 Surface {
-                    Column(Modifier.fillMaxSize()) {
+                    Column(
+                        Modifier
+                            .fillMaxSize()
+                            // Without this the top bar is drawn underneath the status bar, and the
+                            // system swallows every tap in that strip -- which made the "权限检查"
+                            // button impossible to press on a full-screen device. Safe-drawing also
+                            // covers the navigation bar and any display cutout, so the same bug is
+                            // not waiting at the bottom of the list.
+                            .windowInsetsPadding(WindowInsets.safeDrawing),
+                    ) {
                         TopBar(
                             title = screen.title,
                             onBack = if (screen == Screen.REPORT) null else ({ screen = Screen.REPORT }),
